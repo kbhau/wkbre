@@ -25,6 +25,11 @@
 #include <string>
 #include <commdlg.h>
 
+void Texture_apply_main_layers();
+void Texture_replace_missing_transitions();
+void Texture_apply_inner_layers();
+void Texture_fix_seams();
+
 HINSTANCE hInstance;
 GEContainer *actualpage = 0;
 int appexit = 0;
@@ -62,11 +67,16 @@ GUIElement *getobringfront = 0; GESubmenu *actsubmenu = 0;
 GUIElement *movingguielement = 0; int movge_rx, movge_ry;
 
 // Menu
-char *menubarstr[] = {"File", "Object", "Game", "View", "Window", "Help"};
+char *menubarstr[] = {"File", "Texturing", "Object", "Game", "View", "Window", "Help"};
 MenuEntry menucmds[] = {
 {"Save as...", CMD_SAVE},
 {"Change WK version", CMD_CHANGE_SG_WKVER},
 {"Quit", CMD_QUIT},
+{0,0},
+{"Apply main texture layers", CMD_TEXTURING_APPLY_MAIN_LAYERS},
+{"Replace missing transitions", CMD_TEXTURING_REPLACE_MISSING_TRANSITIONS},
+{"Apply inner layers",CMD_TEXTURING_APPLY_INNER_LAYERS},
+{"Fix texture seams", CMD_TEXTURING_FIX_SEAMS},
 {0,0},
 {"Create object...", CMD_CREATEOBJ},
 {"Duplicate selected objects", CMD_DUPLICATESELOBJECT},
@@ -1039,6 +1049,18 @@ void CallCommand(int cmd)
 			GiveNotification("Map successfully exported to BCP.");
 			break;
 		}
+		case CMD_TEXTURING_APPLY_MAIN_LAYERS:
+			Texture_apply_main_layers();
+			break;
+		case CMD_TEXTURING_REPLACE_MISSING_TRANSITIONS:
+			Texture_replace_missing_transitions();
+			break;
+		case CMD_TEXTURING_APPLY_INNER_LAYERS:
+			Texture_apply_inner_layers();
+			break;
+		case CMD_TEXTURING_FIX_SEAMS:
+			Texture_fix_seams();
+			break;
 	}
 }
 
@@ -1312,6 +1334,22 @@ void FindAutotileF(int tx, int tz, bool edge_n, bool edge_e, bool edge_s, bool e
 		}
 	}
 	delete r;
+}
+
+void Set_curtexgrp(MapTextureGroup* __curtexgrp)
+{
+	curtexgrp = __curtexgrp;
+	curtex = curtexgrp->tex->getpnt(rand() % curtexgrp->tex->len);
+}
+
+void Set_curtex(MapTexture* __curtex)
+{
+	curtex = __curtex;
+}
+
+MapTexture* Get_curtex()
+{
+	return curtex;
 }
 
 void SelectNextRandomMapTile()
@@ -3068,6 +3106,14 @@ void IGMainMenuBar()
 		if(ImGui::MenuItem("Change WK version")) CallCommand(CMD_CHANGE_SG_WKVER);
 		if (ImGui::MenuItem("Export map to BCP...")) CallCommand(CMD_EXPORT_BCP);
 		if(ImGui::MenuItem("Quit", "Esc")) CallCommand(CMD_QUIT);
+		ImGui::EndMenu();
+	}
+	if (ImGui::BeginMenu("Texturing"))
+	{
+		if (ImGui::MenuItem("Apply main layers")) CallCommand(CMD_TEXTURING_APPLY_MAIN_LAYERS);
+		if (ImGui::MenuItem("Replace missing transitions")) CallCommand(CMD_TEXTURING_REPLACE_MISSING_TRANSITIONS);
+		if (ImGui::MenuItem("Apply inner layers")) CallCommand(CMD_TEXTURING_APPLY_INNER_LAYERS);
+		if (ImGui::MenuItem("Fix seams")) CallCommand(CMD_TEXTURING_FIX_SEAMS);
 		ImGui::EndMenu();
 	}
 	if(ImGui::BeginMenu("Object"))

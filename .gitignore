@@ -37,3 +37,4 @@ Win32/
 wkbre.dir/
 imgui.ini
 .vs/
+cmake/

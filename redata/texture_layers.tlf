@@ -1,0 +1,207 @@
+# ------------------------------------------------------------------------------
+# Workflow:
+# - Apply main layers.
+# - Paint forests and rivers and other stuffs that don't get easily automated.
+# - Fix missing transitions.
+# - Apply inner layers.
+# - Pray to all gods and fix transition textures.
+# ------------------------------------------------------------------------------
+
+
+
+# ------------------------------------------------------------------------------
+# Useful vars. Can create your own between !VARS and !LAYERS.
+# Format: NAME=VALUE
+# No spaces allowed.
+# ------------------------------------------------------------------------------
+
+!VARS
+
+# Heights.
+HEIGHT_SHRUB=22
+HEIGHT_LOW_GRASS=26
+HEIGHT_MID_GRASS=29
+HEIGHT_NORMAL_GRASS=32
+HEIGHT_SNOW=150
+HEIGHT_MAX=9001
+
+# Slopes.
+SLOPE_LOW=15
+SLOPE_MID=30
+SLOPE_HIGH=45
+SLOPE_MAX=9001
+
+
+
+# ------------------------------------------------------------------------------
+# Main layers:
+# - Texture group name
+# - Min height 
+# - Max height
+# - Min slope
+# - Max slope
+#
+# These are your main layers from lowest to highest. Later ones will overwrite
+# earlier ones if meet same conditions.
+# ------------------------------------------------------------------------------
+
+!LAYERS
+
+# Ocean and coast.
+SAND1,0,HEIGHT_NORMAL_GRASS,0,SLOPE_HIGH
+SHRUB1,HEIGHT_SHRUB,HEIGHT_LOW_GRASS,0,SLOPE_LOW
+GRASS5,HEIGHT_LOW_GRASS,HEIGHT_MID_GRASS,0,SLOPE_LOW
+GRASS3,HEIGHT_MID_GRASS,HEIGHT_NORMAL_GRASS,0,SLOPE_LOW
+
+# Coast slope.
+CLIFF1,0,HEIGHT_SHRUB,SLOPE_HIGH,SLOPE_MAX
+SHRUB1,HEIGHT_SHRUB,HEIGHT_MID_GRASS,SLOPE_LOW,SLOPE_MID
+SAND1,HEIGHT_SHRUB,HEIGHT_MID_GRASS,SLOPE_MID,SLOPE_HIGH
+GRASS1,HEIGHT_MID_GRASS,HEIGHT_NORMAL_GRASS,SLOPE_LOW,SLOPE_MID
+MIDHILL1,HEIGHT_MID_GRASS,HEIGHT_NORMAL_GRASS,SLOPE_MID,SLOPE_HIGH
+ROCK1,HEIGHT_SHRUB,HEIGHT_NORMAL_GRASS,SLOPE_HIGH,SLOPE_MAX
+
+
+# Nice grass.
+GRASS1,HEIGHT_NORMAL_GRASS,HEIGHT_SNOW,0,SLOPE_HIGH
+
+# High slope - grass.
+MIDHILL1,HEIGHT_NORMAL_GRASS,HEIGHT_SNOW,SLOPE_LOW,SLOPE_HIGH
+ROCK1,HEIGHT_NORMAL_GRASS,HEIGHT_SNOW,SLOPE_HIGH,SLOPE_MAX
+
+
+# Snow level.
+SNOW1,HEIGHT_SNOW,HEIGHT_MAX,0,SLOPE_HIGH
+
+# High slope - mountains.
+MOUNTAIN1,HEIGHT_SNOW,HEIGHT_MAX,SLOPE_LOW,SLOPE_HIGH
+ROCK1,HEIGHT_SNOW,HEIGHT_MAX,SLOPE_HIGH,SLOPE_MAX
+
+
+
+# ------------------------------------------------------------------------------
+# Broken transitions:
+# - Group 1
+# - Group 2
+# - Replacement group
+#
+# Some transition textured don't exist but the layer rules still put them next
+# to each other. These will put replacement texture on the border between them
+# so the autotile can tackle it later.
+# Note: the amount of non-existing transitions is quite big so only put in the
+# ones you actually need.
+# ------------------------------------------------------------------------------
+
+!INTERMEDIATE
+
+CLIFF1,ROCK1,SAND1
+MIDHILL1,SAND1,ROCK1
+MIDHILL1,MOUNTAIN1,ROCK1
+SHRUB1,GRASS1,SAND1
+SHRUB1,GRASS3,GRASS5
+SHRUB1,ROCK1,SAND1
+GRASS3,SAND1,GRASS5
+GRASS5,GRASS1,GRASS3
+MOUNTAIN1,GRASS1,SNOW1
+
+
+
+# ------------------------------------------------------------------------------
+# Inner fills:
+# - Parent group name
+# - Inner group name 
+# - Border radius
+# ------------------------------------------------------------------------------
+
+!INNERS
+
+FOREST3,FOREST1,2
+FOREST1,FOREST2,2
+GRASS1,GRASS4,4
+SNOW1,SNOW2,2
+SNOW2,SNOW3,2
+SAND1,SANDSTONE1,3
+SANDSTONE1,SANDSTONE2,2
+
+
+
+# ------------------------------------------------------------------------------
+# Transitions:
+# - Transition texture group
+# - From texture group (on the tex ID 0 the one on the right)
+# - To texture group
+# - Match texture group (on the border, replace this texture group with trans)
+#       - do without it for now, hardcode to match on "from"
+# ------------------------------------------------------------------------------
+
+!TRANSITIONS
+
+CLIFF1-GRASS1,CLIFF1,GRASS1
+CLIFF1-SAND1,CLIFF1,SAND1
+COBBLES1-GRASS2,COBBLES1,GRASS2
+DEEP_RIVER-SAND1,DEEP_RIVER,SAND1
+DEEP_RIVER-SHALLOW_RIVER,DEEP_RIVER,SHALLOW_RIVER
+D_EARTH1-ROCK1,D_EARTH1,ROCK1
+EARTH1-ROCK1,EARTH1,ROCK1
+FOREST1-FOREST2,FOREST1,FOREST2
+FOREST3-FOREST1,FOREST3,FOREST1
+FOREST3-FOREST2,FOREST3,FOREST2
+GRASS1-FOREST3,GRASS1,FOREST3
+GRASS1-GRASS2,GRASS1,GRASS2
+GRASS1-GRASS3,GRASS1,GRASS3
+GRASS1-GRASS4,GRASS1,GRASS4
+GRASS1-GRASSY_MUD1,GRASS1,GRASSY_MUD1
+GRASS1-LOWHILL1,GRASS1,LOWHILL1
+GRASS1-MIDHILL1,GRASS1,MIDHILL1
+GRASS1-ROCKYGRASS2,GRASS1,ROCKYGRASS2
+GRASS1-SAND1,GRASS1,SAND1
+GRASS1-SHALLOW_RIVER,GRASS1,SHALLOW_RIVER
+GRASS1-SNOW1,GRASS1,SNOW1
+GRASS1-SNOW4,GRASS1,SNOW4
+GRASS2-FOREST3,GRASS2,FOREST3
+GRASS2-GRASS3,GRASS2,GRASS3
+GRASS2-GRASS4,GRASS2,GRASS4
+GRASS2-GRASSY_MUD1,GRASS2,GRASSY_MUD1
+GRASS3-GRASS4,GRASS3,GRASS4
+GRASS3-GRASS5,GRASS3,GRASS5
+GRASS3_TO_FOREST3,GRASS3,FOREST3
+GRASS5-LOWHILL1,GRASS5,LOWHILL1
+GRASS5-MIDHILL1,GRASS5,MIDHILL1
+GRASS5-ROCKYGRASS1,GRASS5,ROCKYGRASS1
+GRASS5-SAND1,GRASS5,SAND1
+GRASS5-SHRUB1,GRASS5,SHRUB1
+GRASS5-SNOW1,GRASS5,SNOW1
+MIDHILL1-ROCK1,MIDHILL1,ROCK1
+MOUNTAIN1-ROCK1,MOUNTAIN1,ROCK1
+MOUNTAIN1-SNOW1,MOUNTAIN1,SNOW1
+ROCKYGRASS1-D_EARTH1,ROCKYGRASS1,D_EARTH1
+ROCKYGRASS1-EARTH1,ROCKYGRASS1,EARTH1
+ROCKYGRASS2-D_EARTH1,ROCKYGRASS2,D_EARTH1
+ROCKYGRASS2-EARTH1,ROCKYGRASS2,EARTH1
+SAND1-D_EARTH1,SAND1,D_EARTH1
+SAND1-EARTH1,SAND1,EARTH1
+SAND1-ROCK1,SAND1,ROCK1
+SAND1-SAND2,SAND1,SAND2
+SAND1-SAND3,SAND1,SAND3
+SAND1-SAND4,SAND1,SAND4
+SAND1-SANDSTONE1,SAND1,SANDSTONE1
+SAND1-SANDSTONE2,SAND1,SANDSTONE2
+SAND1-SHALLOW_RIVER,SAND1,SHALLOW_RIVER
+SAND2-SAND3,SAND2,SAND3
+SAND2-SAND4,SAND2,SAND4
+SAND2-SANDSTONE1,SAND2,SANDSTONE1
+SAND2-SANDSTONE2,SAND2,SANDSTONE2
+SAND3-SAND4,SAND3,SAND4
+SANDSTONE1-SAND4,SANDSTONE1,SAND4
+SANDSTONE1-SANDSTONE2,SANDSTONE1,SANDSTONE2
+SHRUB1-SAND1,SHRUB1,SAND1
+SNOW1-SNOW2,SNOW1,SNOW2
+SNOW1-SNOW3,SNOW1,SNOW3
+SNOW1-SNOW4,SNOW1,SNOW4
+SNOW2-SNOW3,SNOW2,SNOW3
+SNOW2-SNOW4,SNOW2,SNOW4
+SNOW3-SNOW4,SNOW3,SNOW4
+
+
+
+!END
