@@ -88,7 +88,11 @@ void Texture_cleanup();
 
 inline MapTile* Get_tile(MapTile* from, int x, int z)
 {
-	return &(maptiles[(from->z + z) * mapwidth + (from->x + x)]);
+	int zz = from->z + z; int xx = from->x + x;
+	if (zz < 0 || zz >= mapheight || xx < 0 || xx >= mapwidth) {
+		return nullptr;
+	}
+	return &(maptiles[zz * mapwidth + xx]);
 }
 
 inline MapTile* Get_N_tile(MapTile* from)

@@ -36,8 +36,8 @@ void Texture_apply_inner_layers()
 		auto& layer = inner_layers[li];
 		auto* tex = Get_texture_group(layer.inner_group_name);
 
-		for (int tz = 1; tz < mapwidth - 1; ++tz) {
-			for (int tx = 1; tx < mapheight - 1; ++tx) {
+		for (int tz = 0; tz < mapwidth; ++tz) {
+			for (int tx = 0; tx < mapheight; ++tx) {
 
 				i = tz * mapwidth + tx;
 				auto* tile = &(maptiles[i]);
