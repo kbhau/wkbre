@@ -18,48 +18,55 @@
 
 
 
-// Bit pattern: 0b0000NESW
+// Bit pattern: N NE E SE S SW W NW
 
 uchar tiles_to[] = {
+	0b00000111,
 	0b00000001,
-	0b00000000,
-	0b00001001,
-	0b00001001,
-	0b00001001,
-	0b00001100,
-	0b00001000,
-	0b00001000,
-	0b00000000,
-	0b00001001,
+	0b11000111,
+	0b10000011,
+	0b11000011,
+	0b11100001,
+	0b00000001,
+	0b01000000,
+	0b00000001,
+	0b11101111,
 };
 
 uchar tiles_from[] = {
-	0b00000100,
-	0b00000110,
-	0b00000000,
-	0b00000110,
-	0b00000010,
-	0b00000010,
-	0b00000110,
-	0b00000011,
-	0b00000110,
-	0b00000000,
+	0b01110000,
+	0b01111100,
+	0b00010000,
+	0b00111000,
+	0b00011000,
+	0b00001100,
+	0b00011100,
+	0b00011100,
+	0b11111110,
+	0b00010000,
 };
 
 inline void Shape_flip_x(uchar& s)
 {
-	s = s & 0b11111010 | ((s & 0b00000100) >> 2) | ((s & 0b00000001) << 2);
+
+	s = (s & 0b10001000)
+		| ((s & 0b01000000) >> 6) | ((s & 0b00000001) << 6)
+		| ((s & 0b00100000) >> 4) | ((s & 0b00000010) << 4)
+		| ((s & 0b00010000) >> 2) | ((s & 0b00000100) << 2);
 }
 
 inline void Shape_flip_z(uchar& s)
 {
-	s = s & 0b11110101 | ((s & 0b00001000) >> 2) | ((s & 0b00000010) << 2);
+	s = (s & 0b00100010)
+		| ((s & 0b10000000) >> 4) | ((s & 0b00001000) << 4)
+		| ((s & 0b01000000) >> 2) | ((s & 0b00010000) << 2)
+		| ((s & 0b00000100) >> 2) | ((s & 0b00000001) << 2);
 }
 
 inline void Shape_rotate(uchar& s)
 {
 	//s = ((s & 0b00000001) << 3) | (s >> 1); // this is wrong side, should rotate counter clockwise as it's the shape around the tile, not the tile
-	s = ((s & 0b00001000) >> 3) | (s << 1) & 0b00001111;
+	s = ((s & 0b11000000) >> 6) | ((s & 0b00111111) << 2);
 }
 
 int Fit_tile(uchar shape, uchar* shapes)
@@ -75,7 +82,21 @@ int Fit_tile(uchar shape, uchar* shapes)
 int Fit_tile(uchar shape_to, uchar shape_from)
 {
 	for (int i = 0; i < 10; ++i) {
-		if (shape_to == tiles_to[i] && shape_from == tiles_from[i]) {
+		if ((shape_to & 0b10101010) == (tiles_to[i] & 0b10101010)
+			&& (shape_from & 0b10101010) == (tiles_from[i] & 0b10101010))
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+int Fit_tile_full(uchar shape_to, uchar shape_from)
+{
+	for (int i = 0; i < 10; ++i) {
+		if ((shape_to /*& tiles_to[i]*/) == tiles_to[i]
+			&& (shape_from /*& tiles_from[i]*/) == tiles_from[i])
+		{
 			return i;
 		}
 	}
@@ -154,6 +175,64 @@ int Fit_tile(
 	// No match found - give up.
 }
 
+
+uchar Get_shape(MapTile* tile, char* group)
+{
+	uchar s = 0;
+	s |= Tile_in_group(Get_N_tile(tile), group) << 7;
+	s |= Tile_in_group(Get_NE_tile(tile), group) << 6;
+	s |= Tile_in_group(Get_E_tile(tile), group) << 5;
+	s |= Tile_in_group(Get_SE_tile(tile), group) << 4;
+	s |= Tile_in_group(Get_S_tile(tile), group) << 3;
+	s |= Tile_in_group(Get_SW_tile(tile), group) << 2;
+	s |= Tile_in_group(Get_W_tile(tile), group) << 1;
+	s |= Tile_in_group(Get_NW_tile(tile), group) << 0;
+	return s;
+}
+
+
+void Randomize_tile(TileTexChange* t)
+{
+	switch (t->tile_id) {
+	case 0:
+		t->flipx = rand() % 2;
+		break;
+	case 1:
+	case 2:
+	case 3:
+	case 8:
+	case 9:
+		if (rand() % 2) {
+			t->rotation += 2;
+			t->rotation %= 4;
+			t->flipx = !t->flipx;
+			t->flipz = !t->flipz;
+		}
+		break;
+	case 4:
+	case 6:
+		if (rand() % 2) {
+			t->tile_id += 1;
+			if (t->rotation == 1 || t->rotation == 3) {
+				t->flipz = !t->flipz;
+			} else {
+				t->flipx = !t->flipx;
+			}
+		}
+		break;
+	case 5:
+	case 7:
+		if (rand() % 2) {
+			t->tile_id -= 1;
+			if (t->rotation == 1 || t->rotation == 3) {
+				t->flipz = !t->flipz;
+			} else {
+				t->flipx = !t->flipx;
+			}
+		}
+		break;
+	}
+}
 
 
 bool Fill_islands(TextureLayerTransition* transition)
@@ -244,66 +323,22 @@ bool Match_tiles1(TextureLayerTransition* transition)
 				if (Tile_in_group(tile, transition->from_group)) {
 
 					// Check if is on the border.
-					okfrom = false;
-					okto = false;
-					for (int ntz = -1; ntz <= 1; ++ntz) {
-						for (int ntx = -1; ntx <= 1; ++ntx) {
-
-							if (ntx != 0 && ntz != 0) {
-								continue;
-							}
-
-							auto* tile2 = Get_tile(tile, ntx, ntz);
-
-							auto isfrom = Tile_in_group(tile2, transition->from_group);
-							auto isto = Tile_in_group(tile2, transition->to_group);
-							okfrom |= isfrom;
-							okto |= isto;
-
-							if (!isfrom && !isto) {
-								goto next_tile;
-							}
-						}
+					uchar shape_from = Get_shape(tile, transition->from_group);
+					if (shape_from == 0) {
+						continue;
 					}
-					if (!okfrom || !okto) {
-						goto next_tile;
-					}
-
-					// Do the fitting.
-					uchar shape_to = 0;
-					uchar shape_from = 0;
-
-					shape_to |= Tile_in_group(Get_N_tile(tile), transition->to_group) << 3;
-					shape_to |= Tile_in_group(Get_E_tile(tile), transition->to_group) << 2;
-					shape_to |= Tile_in_group(Get_S_tile(tile), transition->to_group) << 1;
-					shape_to |= Tile_in_group(Get_W_tile(tile), transition->to_group) << 0;
-
-					int tid = Fit_tile(
-						shape_to,
-						shape_from,
-						false,
-						rotation,
-						flipx,
-						flipz
-					);
-
-					if (tid == -1) {
+					uchar shape_to = Get_shape(tile, transition->to_group);
+					if (shape_to == 0) {
 						continue;
 					}
 
+					// Change into transition tile.
 					auto* change = &(changebuf[tile->z * mapwidth + tile->x]);
-					change->tile_id = tid;
-					change->rotation = rotation;
-					change->flipx = flipx;
-					change->flipz = flipz;
+					change->tile_id = 0;
 					ok = false;
-
 				} // tile in group
-			next_tile:
-				ok = ok;
 			}
 		}
-
 		Apply_change_buffer(transition->transition_group);
 
 		if (!ok) {
@@ -316,6 +351,43 @@ bool Match_tiles1(TextureLayerTransition* transition)
 	}
 
 	return oook;
+}
+
+bool Prune_transitions(TextureLayerTransition* transition)
+{
+	int i;
+
+	for (int tz = 1; tz < mapwidth - 1; ++tz) {
+		for (int tx = 1; tx < mapheight - 1; ++tx) {
+
+			i = tz * mapwidth + tx;
+			auto* tile = &(maptiles[i]);
+			if (Tile_in_group(tile, transition->transition_group)) {
+
+				uchar shape_from = Get_shape(tile, transition->from_group);
+				if (shape_from == 0) {
+					Set_current_texture_by_name(transition->to_group);
+					ChangeTileTexture(tile, Get_curtex());
+					tile->rot = rand() % 4;
+					tile->xflip = rand() % 2;
+					tile->zflip = rand() % 2;
+					continue;
+				}
+				uchar shape_to = Get_shape(tile, transition->to_group);
+				if (shape_from == 0) {
+					Set_current_texture_by_name(transition->from_group);
+					ChangeTileTexture(tile, Get_curtex());
+					tile->rot = rand() % 4;
+					tile->xflip = rand() % 2;
+					tile->zflip = rand() % 2;
+				}
+			} // tile in group
+		}
+	}
+
+	Apply_change_buffer(transition->transition_group);
+
+	return true;
 }
 
 bool Match_tiles2(TextureLayerTransition* transition)
@@ -339,17 +411,8 @@ bool Match_tiles2(TextureLayerTransition* transition)
 				auto* tile = &(maptiles[i]);
 				if (Tile_in_group(tile, transition->transition_group)) {
 
-					uchar shape_to = 0;
-					uchar shape_from = 0;
-
-					shape_to |= Tile_in_group(Get_N_tile(tile), transition->to_group) << 3;
-					shape_to |= Tile_in_group(Get_E_tile(tile), transition->to_group) << 2;
-					shape_to |= Tile_in_group(Get_S_tile(tile), transition->to_group) << 1;
-					shape_to |= Tile_in_group(Get_W_tile(tile), transition->to_group) << 0;
-					shape_from |= Tile_in_group(Get_N_tile(tile), transition->from_group) << 3;
-					shape_from |= Tile_in_group(Get_E_tile(tile), transition->from_group) << 2;
-					shape_from |= Tile_in_group(Get_S_tile(tile), transition->from_group) << 1;
-					shape_from |= Tile_in_group(Get_W_tile(tile), transition->from_group) << 0;
+					uchar shape_to = Get_shape(tile, transition->to_group);
+					uchar shape_from = Get_shape(tile, transition->from_group);
 
 					int tid = Fit_tile(
 						shape_to,
@@ -361,7 +424,8 @@ bool Match_tiles2(TextureLayerTransition* transition)
 					);
 
 					if (tid == -1) {
-						continue;
+						tid = -2;
+						ok = false;
 					}
 
 					auto* change = &(changebuf[tile->z * mapwidth + tile->x]);
@@ -369,13 +433,12 @@ bool Match_tiles2(TextureLayerTransition* transition)
 					change->rotation = rotation;
 					change->flipx = flipx;
 					change->flipz = flipz;
-					ok = false;
-
+					Randomize_tile(change);
 				} // tile in group
 			}
 		}
 
-		Apply_change_buffer(transition->transition_group);
+		Apply_change_buffer(transition->transition_group, transition->from_group);
 
 		if (!ok) {
 			oook = false;
@@ -400,28 +463,45 @@ void Texture_fix_seams()
 	Texture_read_layer_files();
 	Create_change_buffer();
 
-	// Loop over all transition layers.
-	// 
-	// First pass places transition tiles based only on "to" tiles,
-	// the second one can disambiguate using the transition tiles
-	// or remaining "from" tiles.
 	printf("fix seams begin\n");
 
 	while (!ok) {
+		ok = true;
+
 		for (int t = 0; t < transitions.len; ++t)
 		{
 			auto* transition = &(transitions[t]);
-
-			Fill_islands(transition);
-			Match_tiles1(transition);
-			Match_tiles2(transition);
+			ok &= Fill_islands(transition);
 		}
+		printf("fill\n");
 
+		for (int t = 0; t < transitions.len; ++t)
+		{
+			auto* transition = &(transitions[t]);
+			ok &= Match_tiles1(transition);
+		}
+		printf("match 1\n");
+
+		for (int t = 0; t < transitions.len; ++t)
+		{
+			auto* transition = &(transitions[t]);
+			ok &= Prune_transitions(transition);
+		}
+		printf("prune\n");	
+			
 		if (++counter >= fix_seams_iterations) {
 			printf("fix seams max iterations reached\n");
 			break;
 		}
 	}
+
+	for (int t = 0; t < transitions.len; ++t)
+	{
+		auto* transition = &(transitions[t]);
+		ok &= Match_tiles2(transition);
+	}
+	printf("match 2\n");
+
 	printf("fix seams end\n");
 
 	Free_change_buffer();

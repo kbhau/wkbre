@@ -102,9 +102,9 @@ bool Resolve_knots()
 					for (int ntz = -1; ntz < 2; ++ntz) {
 						for (int ntx = -1; ntx < 2; ++ntx) {
 
-							if (ntx != 0 && ntz != 0) {
+							/*if (ntx != 0 && ntz != 0) {
 								continue;
-							}
+							}*/
 
 							auto tile2 = Get_tile(tile, ntx, ntz);
 							if (!tile2) {
@@ -152,8 +152,16 @@ bool Resolve_knots()
 									continue;
 								}
 
-								changebuf[tile2->z * mapwidth + tile2->x].tile_id =
-									rand() % tex->tex->len;
+								if (!other_group) {
+									changebuf[tile2->z * mapwidth + tile2->x].tile_id =
+										rand() % tex->tex->len;
+									continue;
+								}
+								
+								if (!Tile_in_group(tile2, other_group)) {
+									changebuf[tile2->z * mapwidth + tile2->x].tile_id =
+										rand() % tex->tex->len;
+								}
 							}
 						}
 					}

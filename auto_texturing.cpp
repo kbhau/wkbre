@@ -334,7 +334,7 @@ void Free_change_buffer()
 	free(changebuf);
 }
 
-void Apply_change_buffer(char* tex_grp)
+void Apply_change_buffer(char* tex_grp, char* alt)
 {
 	for (int i = 0; i < bufsize; ++i) {
 		auto& change = changebuf[i];
@@ -343,8 +343,16 @@ void Apply_change_buffer(char* tex_grp)
 			continue;
 		}
 
+		char* grp = tex_grp;
+		if (change.tile_id == -2) {
+			if (alt == nullptr) {
+				alt = tex_grp;
+			}
+			grp = alt;
+		}
+
 		auto* tile = &(maptiles[i]);
-		auto tex = Get_texture(tex_grp, change.tile_id);
+		auto tex = Get_texture(grp, change.tile_id);
 		if (!tex) {
 			//printf("\nx: %d z: %d err notex\n", tile->x, tile->z);
 			continue;

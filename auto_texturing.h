@@ -103,25 +103,37 @@ inline MapTile* Get_tile(MapTile* from, int x, int z)
 	}
 	return &(maptiles[zz * mapwidth + xx]);
 }
-
 inline MapTile* Get_N_tile(MapTile* from)
 {
 	return &(maptiles[(from->z - 1) * mapwidth + from->x]);
 }
-
+inline MapTile* Get_NE_tile(MapTile* from)
+{
+	return &(maptiles[(from->z - 1) * mapwidth + from->x + 1]);
+}
 inline MapTile* Get_E_tile(MapTile* from)
 {
 	return &(maptiles[from->z * mapwidth + from->x + 1]);
 }
-
+inline MapTile* Get_SE_tile(MapTile* from)
+{
+	return &(maptiles[(from->z + 1) * mapwidth + from->x + 1]);
+}
 inline MapTile* Get_S_tile(MapTile* from)
 {
 	return &(maptiles[(from->z + 1) * mapwidth + from->x]);
 }
-
+inline MapTile* Get_SW_tile(MapTile* from)
+{
+	return &(maptiles[(from->z + 1) * mapwidth + from->x - 1]);
+}
 inline MapTile* Get_W_tile(MapTile* from)
 {
 	return &(maptiles[from->z * mapwidth + from->x - 1]);
+}
+inline MapTile* Get_NW_tile(MapTile* from)
+{
+	return &(maptiles[(from->z - 1) * mapwidth + from->x - 1]);
 }
 
 MapTextureGroup* Get_texture_group(const char* name);
@@ -136,7 +148,7 @@ extern TileTexChange* changebuf;
 
 void Create_change_buffer();
 void Free_change_buffer();
-void Apply_change_buffer(char* tex_grp);
+void Apply_change_buffer(char* tex_grp, char* alt = nullptr);
 
 
 
