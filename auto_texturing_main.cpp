@@ -85,10 +85,6 @@ void Texture_apply_main_layers()
 				}
 				avslope += slope;
 				avtiles += 1;
-				if (rand() % 2000 == 0) {
-					printf("slope: %.5f\n", slope);
-				}
-
 
 				if (height >= layer.height_min && height < layer.height_max
 					&& slope >= layer.slope_min && slope < layer.slope_max)

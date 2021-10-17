@@ -33,6 +33,20 @@ SLOPE_MAX=9001
 
 
 
+
+
+# ------------------------------------------------------------------------------
+# Hardcoded variables.
+# ------------------------------------------------------------------------------
+
+!VARS2
+
+REPLACEMENT_ITERATIONS=100
+KNOT_ITERATIONS=1
+FIX_SEAMS_ITERATIONS=5
+
+
+
 # ------------------------------------------------------------------------------
 # Main layers:
 # - Texture group name
@@ -80,7 +94,7 @@ ROCK1,HEIGHT_SNOW,HEIGHT_MAX,SLOPE_HIGH,SLOPE_MAX
 
 
 # ------------------------------------------------------------------------------
-# Broken transitions:
+# Transition replacements:
 # - Group 1
 # - Group 2
 # - Replacement group
@@ -92,21 +106,52 @@ ROCK1,HEIGHT_SNOW,HEIGHT_MAX,SLOPE_HIGH,SLOPE_MAX
 # ones you actually need.
 # ------------------------------------------------------------------------------
 
-!INTERMEDIATE
+!REPLACEMENTS
 
-CLIFF1,ROCK1,SAND1
-MIDHILL1,SAND1,ROCK1
-MIDHILL1,MOUNTAIN1,ROCK1
-SHRUB1,GRASS1,SAND1
-SHRUB1,GRASS3,GRASS5
-SHRUB1,ROCK1,SAND1
-GRASS3,SAND1,GRASS5
-GRASS5,GRASS1,GRASS3
-MOUNTAIN1,GRASS1,SNOW1
 FOREST3,GRASS4,GRASS1
 FOREST3,GRASS5,GRASS1
 FOREST3,MIDHILL1,GRASS1
 FOREST3,ROCK1,GRASS1
+
+SHRUB1,GRASS1,SAND1
+SHRUB1,GRASS3,GRASS5
+SHRUB1,ROCK1,SAND1
+SHRUB1,MIDHILL1,SAND1
+GRASS3,SAND1,GRASS5
+GRASS5,GRASS1,GRASS3
+
+CLIFF1,ROCK1,SAND1
+ROCK1,GRASS1,MIDHILL1
+ROCK1,GRASS5,MIDHILL1
+
+MIDHILL1,SAND1,ROCK1
+MIDHILL1,MOUNTAIN1,ROCK1
+MOUNTAIN1,GRASS1,SNOW1
+SNOW1,MIDHILL1,GRASS1
+SNOW1,ROCK1,MOUNTAIN1
+
+
+
+# ------------------------------------------------------------------------------
+# Knots:
+# - Group name
+#
+# This finds the tiles in the tex group, then checks adjacent tiles if they have
+# contains more than one other texture group. If so then all tiles are turned
+# into this group.
+# ------------------------------------------------------------------------------
+
+!KNOTS
+
+SAND1
+GRASS1
+GRASS5
+GRASS3
+#SHRUB1
+#CLIFF1
+#MIDHILL1
+#ROCK1
+MOUNTAIN1
 
 
 

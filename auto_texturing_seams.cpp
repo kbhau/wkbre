@@ -154,179 +154,251 @@ int Fit_tile(
 	// No match found - give up.
 }
 
-bool Make_transition_tile(
-	MapTile* tile,
-	TextureLayerTransition* transition,
-	bool match_from,
-	bool fill_islands = false
-) {
+
+
+bool Fill_islands(TextureLayerTransition* transition)
+{
+	int i;
+	bool ok = false;
+	bool oook = true;
+
+	while (!ok) {
+		ok = true;
+		for (int tz = 1; tz < mapwidth - 1; ++tz) {
+			for (int tx = 1; tx < mapheight - 1; ++tx) {
+				i = tz * mapwidth + tx;
+				auto* tile = &(maptiles[i]);
+
+				char* group_this;
+				char* group_other;
+				if (Tile_in_group(tile, transition->from_group)) {
+					group_this = transition->from_group;
+					group_other = transition->to_group;
+				} else if (Tile_in_group(tile, transition->to_group)) {
+					group_this = transition->to_group;
+					group_other = transition->from_group;
+				} else {
+					continue;
+				}
+
+				auto countmatch = 0;
+
+				for (int ntz = -1; ntz <= 1; ++ntz) {
+					for (int ntx = -1; ntx <= 1; ++ntx) {
+
+						if (ntx != 0 && ntz != 0) {
+							continue;
+						}
+
+						auto tile2 = Get_tile(tile, ntx, ntz);
+						/*if (!tile2) {
+							continue;
+						}*/
+
+						countmatch += Tile_in_group(tile2, group_other);
+					}
+				}
+
+				if (countmatch > 2) {
+					Set_current_texture_by_name(group_other);
+					ChangeTileTexture(tile, Get_curtex());
+					tile->rot = rand() % 4;
+					tile->xflip = rand() % 2;
+					tile->zflip = rand() % 2;
+
+					ok = false;
+				}
+
+			} // tiles
+		}
+
+		if (!ok) {
+			oook = false;
+		}
+	}
+
+	return oook;
+}
+
+bool Match_tiles1(TextureLayerTransition* transition)
+{
+	int i;
+	bool ok = false;
+	bool oook = true;
+	int counter = 0;
+
 	int rotation = 0;
 	bool flipx = false;
 	bool flipz = false;
 
+	while (!ok) {
+		ok = true;
+		bool okfrom;
+		bool okto;
 
-	// Need a pre-pass to find out if this is a border at all.
-	// Should work only with clear neighbourhood.
-	// More complex situations currently need manual resolution.
+		for (int tz = 1; tz < mapwidth - 1; ++tz) {
+			for (int tx = 1; tx < mapheight - 1; ++tx) {
 
-	// Pre-pass needs a 3x3 box, other checks just + shape.
+				i = tz * mapwidth + tx;
+				auto* tile = &(maptiles[i]);
+				if (Tile_in_group(tile, transition->from_group)) {
 
-	int i;
-	MapTile* ttile;
+					// Check if is on the border.
+					okfrom = false;
+					okto = false;
+					for (int ntz = -1; ntz <= 1; ++ntz) {
+						for (int ntx = -1; ntx <= 1; ++ntx) {
 
+							if (ntx != 0 && ntz != 0) {
+								continue;
+							}
 
-	// Fill islands pre-pass.
-	if (fill_islands) {
-		auto countmatch = 0;
+							auto* tile2 = Get_tile(tile, ntx, ntz);
 
-		int x = tile->x;
-		int z = tile->z - 1;
-		i = z * mapwidth + x;
-		countmatch += Tile_in_group(&(maptiles[i]), transition->to_group);
-		x = tile->x + 1;
-		z = tile->z;
-		i = z * mapwidth + x;
-		countmatch += Tile_in_group(&(maptiles[i]), transition->to_group);
-		x = tile->x;
-		z = tile->z + 1;
-		i = z * mapwidth + x;
-		countmatch += Tile_in_group(&(maptiles[i]), transition->to_group);
-		x = tile->x - 1;
-		z = tile->z;
-		i = z * mapwidth + x;
-		countmatch += Tile_in_group(&(maptiles[i]), transition->to_group);
+							auto isfrom = Tile_in_group(tile2, transition->from_group);
+							auto isto = Tile_in_group(tile2, transition->to_group);
+							okfrom |= isfrom;
+							okto |= isto;
 
-		if (countmatch > 2) {
-			char* name = transition->to_group;
-			/*if (strcmp(transition->match_group, transition->from_group) == 0) {
-				name = transition->to_group;
-			} else {
-				name = transition->to_group;
-			}*/
+							if (!isfrom && !isto) {
+								goto next_tile;
+							}
+						}
+					}
+					if (!okfrom || !okto) {
+						goto next_tile;
+					}
 
-			Set_current_texture_by_name(name);
-			ChangeTileTexture(tile, Get_curtex());
-			tile->rot = rand() % 4;
-			tile->xflip = rand() % 2;
-			tile->zflip = rand() % 2;
+					// Do the fitting.
+					uchar shape_to = 0;
+					uchar shape_from = 0;
 
-			return true;
-		}
-		return false;
-	}
+					shape_to |= Tile_in_group(Get_N_tile(tile), transition->to_group) << 3;
+					shape_to |= Tile_in_group(Get_E_tile(tile), transition->to_group) << 2;
+					shape_to |= Tile_in_group(Get_S_tile(tile), transition->to_group) << 1;
+					shape_to |= Tile_in_group(Get_W_tile(tile), transition->to_group) << 0;
 
-	//printf("pre\n");
+					int tid = Fit_tile(
+						shape_to,
+						shape_from,
+						false,
+						rotation,
+						flipx,
+						flipz
+					);
 
-	if (!match_from) { // No need for second pass as it's working only on transition tiles.
-		auto okfrom = false;
-		auto okto = false;
-		for (int x = tile->x - 1; x < tile->x + 2; ++x) {
-			for (int z = tile->z - 1; z < tile->z + 2; ++z) {
-				if (z == tile->z && x == tile->x) {
-					continue;
-				}
+					if (tid == -1) {
+						continue;
+					}
 
-				i = z * mapwidth + x;
-				ttile = &(maptiles[i]);
+					auto* change = &(changebuf[tile->z * mapwidth + tile->x]);
+					change->tile_id = tid;
+					change->rotation = rotation;
+					change->flipx = flipx;
+					change->flipz = flipz;
+					ok = false;
 
-				auto isfrom = Tile_in_group(ttile, transition->from_group);
-				auto isto = Tile_in_group(ttile, transition->to_group);
-				if (!isfrom && !isto) {
-					return false;
-				}
-				okfrom |= isfrom;
-				okto |= isto;
+				} // tile in group
+			next_tile:
+				ok = ok;
 			}
 		}
-		if (!(okfrom && okto)) {
-			return false;
+
+		Apply_change_buffer(transition->transition_group);
+
+		if (!ok) {
+			oook = false;
+		}
+
+		if (++counter >= fix_seams_iterations) {
+			break;
 		}
 	}
 
-	//printf("main\n");
-
-
-
-	// Build shapes.
-
-	uchar shape_to = 0;
-	uchar shape_from = 0;
-
-	int x = tile->x;
-	int z = tile->z - 1;
-	i = z * mapwidth + x;
-	shape_to |= Tile_in_group(&(maptiles[i]), transition->to_group) << 3;
-	x = tile->x + 1;
-	z = tile->z;
-	i = z * mapwidth + x;
-	shape_to |= Tile_in_group(&(maptiles[i]), transition->to_group) << 2;
-	x = tile->x;
-	z = tile->z + 1;
-	i = z * mapwidth + x;
-	shape_to |= Tile_in_group(&(maptiles[i]), transition->to_group) << 1;
-	x = tile->x - 1;
-	z = tile->z;
-	i = z * mapwidth + x;
-	shape_to |= Tile_in_group(&(maptiles[i]), transition->to_group) << 0;
-
-	if (match_from) {
-		x = tile->x;
-		z = tile->z - 1;
-		i = z * mapwidth + x;
-		shape_from |= Tile_in_group(&(maptiles[i]), transition->from_group) << 3;
-		x = tile->x + 1;
-		z = tile->z;
-		i = z * mapwidth + x;
-		shape_from |= Tile_in_group(&(maptiles[i]), transition->from_group) << 2;
-		x = tile->x;
-		z = tile->z + 1;
-		i = z * mapwidth + x;
-		shape_from |= Tile_in_group(&(maptiles[i]), transition->from_group) << 1;
-		x = tile->x - 1;
-		z = tile->z;
-		i = z * mapwidth + x;
-		shape_from |= Tile_in_group(&(maptiles[i]), transition->from_group) << 0;
-	}
-
-	//printf("%d %d\n", shape_to, shape_from);
-
-	// Fit tile.
-
-	int tid = Fit_tile(
-		shape_to,
-		shape_from,
-		match_from,
-		rotation,
-		flipx,
-		flipz
-	);
-
-	if (tid == -1) {
-		return false;
-	}
-
-	auto* change = &(changebuf[tile->z * mapwidth + tile->x]);
-	change->tile_id = tid;
-	change->rotation = rotation;
-	change->flipx = flipx;
-	change->flipz = flipz;
-	return true;
+	return oook;
 }
 
+bool Match_tiles2(TextureLayerTransition* transition)
+{
+	int i;
+	bool ok = false;
+	bool oook = true;
+	int counter = 0;
+
+	int rotation = 0;
+	bool flipx = false;
+	bool flipz = false;
+
+	while (!ok) {
+		ok = true;
+
+		for (int tz = 1; tz < mapwidth - 1; ++tz) {
+			for (int tx = 1; tx < mapheight - 1; ++tx) {
+
+				i = tz * mapwidth + tx;
+				auto* tile = &(maptiles[i]);
+				if (Tile_in_group(tile, transition->transition_group)) {
+
+					uchar shape_to = 0;
+					uchar shape_from = 0;
+
+					shape_to |= Tile_in_group(Get_N_tile(tile), transition->to_group) << 3;
+					shape_to |= Tile_in_group(Get_E_tile(tile), transition->to_group) << 2;
+					shape_to |= Tile_in_group(Get_S_tile(tile), transition->to_group) << 1;
+					shape_to |= Tile_in_group(Get_W_tile(tile), transition->to_group) << 0;
+					shape_from |= Tile_in_group(Get_N_tile(tile), transition->from_group) << 3;
+					shape_from |= Tile_in_group(Get_E_tile(tile), transition->from_group) << 2;
+					shape_from |= Tile_in_group(Get_S_tile(tile), transition->from_group) << 1;
+					shape_from |= Tile_in_group(Get_W_tile(tile), transition->from_group) << 0;
+
+					int tid = Fit_tile(
+						shape_to,
+						shape_from,
+						true,
+						rotation,
+						flipx,
+						flipz
+					);
+
+					if (tid == -1) {
+						continue;
+					}
+
+					auto* change = &(changebuf[tile->z * mapwidth + tile->x]);
+					change->tile_id = tid;
+					change->rotation = rotation;
+					change->flipx = flipx;
+					change->flipz = flipz;
+					ok = false;
+
+				} // tile in group
+			}
+		}
+
+		Apply_change_buffer(transition->transition_group);
+
+		if (!ok) {
+			oook = false;
+		}
+
+		if (++counter >= fix_seams_iterations) {
+			break;
+		}
+	}
+
+	return oook;
+}
 
 
 // Use after finishing all main layers to place texture transistions.
 void Texture_fix_seams()
 {
 	int i;
+	bool ok = false;
+	int counter = 0;
 
 	Texture_read_layer_files();
 	Create_change_buffer();
-
-	changebuf = (TileTexChange*)malloc(sizeof(TileTexChange) * bufsize);
-	for (int i = 0; i < bufsize; ++i) {
-		changebuf[i].tile_id = -1;
-	}
 
 	// Loop over all transition layers.
 	// 
@@ -334,72 +406,23 @@ void Texture_fix_seams()
 	// the second one can disambiguate using the transition tiles
 	// or remaining "from" tiles.
 	printf("fix seams begin\n");
-	for (int t = 0; t < transitions.len; ++t)
-	{
-		auto* transition = &(transitions[t]);
 
-		// Loop over all tiles - fill islands.
-		printf("fix seams 1\n");
-		bool changed = true;
-		while (changed) {
-			changed = false;
-			for (int tz = 1; tz < mapwidth - 1; ++tz) {
-				for (int tx = 1; tx < mapheight - 1; ++tx) {
-					i = tz * mapwidth + tx;
-					auto* tile = &(maptiles[i]);
-					if (Tile_in_group(tile, transition->from_group)) {
-						changed |= Make_transition_tile(tile, transition, false, true);
-					}
-				}
-			}
+	while (!ok) {
+		for (int t = 0; t < transitions.len; ++t)
+		{
+			auto* transition = &(transitions[t]);
+
+			Fill_islands(transition);
+			Match_tiles1(transition);
+			Match_tiles2(transition);
 		}
 
-		// Loop over all tiles - match "to" tiles only.
-		printf("fix seams 2\n");
-		for (int tz = 1; tz < mapwidth - 1; ++tz) {
-			for (int tx = 1; tx < mapheight - 1; ++tx) {
-				i = tz * mapwidth + tx;
-				auto* tile = &(maptiles[i]);
-				if (Tile_in_group(tile, transition->from_group)) {
-					Make_transition_tile(tile, transition, false);
-				}
-			}
+		if (++counter >= fix_seams_iterations) {
+			printf("fix seams max iterations reached\n");
+			break;
 		}
-		Apply_change_buffer(transition->transition_group);
-
-		// Loop over all tiles - match "from" tiles too.
-		printf("fix seams 3\n");
-		for (int tz = 1; tz < mapwidth - 1; ++tz) {
-			for (int tx = 1; tx < mapheight - 1; ++tx) {
-				i = tz * mapwidth + tx;
-				auto* tile = &(maptiles[i]);
-				if (Tile_in_group(tile, transition->transition_group)) {
-					Make_transition_tile(tile, transition, true);
-				}
-			}
-		}
-		Apply_change_buffer(transition->transition_group);
-
-		// Loop over all tiles - match "from" tiles too.
-		printf("fix seams 4\n");
-		for (int tz = 1; tz < mapwidth - 1; ++tz) {
-			for (int tx = 1; tx < mapheight - 1; ++tx) {
-				i = tz * mapwidth + tx;
-				auto* tile = &(maptiles[i]);
-				if (Tile_in_group(tile, transition->transition_group)) {
-					Make_transition_tile(tile, transition, true);
-				}
-			}
-		}
-		Apply_change_buffer(transition->transition_group);
-
-		printf("fix seams 5\n");
-
-		// No need to match transition tiles pass.
 	}
 	printf("fix seams end\n");
-
-
 
 	Free_change_buffer();
 	Texture_cleanup();

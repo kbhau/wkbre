@@ -45,6 +45,11 @@ struct TextureLayerIntermediate
 	char* replacement;
 };
 
+struct TextureLayerKnot
+{
+	char* group_name;
+};
+
 struct TextureLayerInner
 {
 	char* parent_group_name;
@@ -73,9 +78,13 @@ struct TileTexChange
 
 extern GrowList<TextureLayerMain> main_layers;
 extern GrowList<TextureLayerIntermediate> replacements;
+extern GrowList<TextureLayerKnot> knots;
 extern GrowList<TextureLayerInner> inner_layers;
 extern GrowList<TextureLayerTransition> transitions;
 
+extern int replacement_iterations;
+extern int knot_iterations;
+extern int fix_seams_iterations;
 
 extern float sqrt2;
 

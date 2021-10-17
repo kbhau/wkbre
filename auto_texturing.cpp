@@ -23,11 +23,28 @@ GrowList<TextureLayerMain> main_layers;
 GrowList<TextureLayerIntermediate> replacements;
 GrowList<TextureLayerInner> inner_layers;
 GrowList<TextureLayerTransition> transitions;
+GrowList<TextureLayerKnot> knots;
+
+int replacement_iterations = 100;
+int knot_iterations = 1;
+int fix_seams_iterations = 100;
 
 float sqrt2 = sqrt(2);
 
 int bufsize = 0;
 TileTexChange* changebuf;
+
+
+
+enum Tlf_mode_enum {
+	VARS = 0,
+	VARS2,
+	LAYERS,
+	REPLACEMENTS,
+	KNOTS,
+	INNERS,
+	TRANSITIONS
+};
 
 
 
@@ -73,15 +90,19 @@ void Texture_read_layer_files()
 		// Set mode.
 		if (line[0] == '!') {
 			if (strcmp(line, "!VARS\n") == 0) {
-				mode = 0;
+				mode = VARS;
+			} else if (strcmp(line, "!VARS2\n") == 0) {
+				mode = VARS2;
 			} else if (strcmp(line, "!LAYERS\n") == 0) {
-				mode = 1;
-			} else if (strcmp(line, "!INTERMEDIATE\n") == 0) {
-				mode = 2;
+				mode = LAYERS;
+			} else if (strcmp(line, "!REPLACEMENTS\n") == 0) {
+				mode = REPLACEMENTS;
+			} else if (strcmp(line, "!KNOTS\n") == 0) {
+				mode = KNOTS;
 			} else if (strcmp(line, "!INNERS\n") == 0) {
-				mode = 3;
+				mode = INNERS;
 			} else if (strcmp(line, "!TRANSITIONS\n") == 0) {
-				mode = 4;
+				mode = TRANSITIONS;
 			} else {
 				mode = -1;
 			}
@@ -89,14 +110,28 @@ void Texture_read_layer_files()
 		}
 
 		// Read vars.
-		if (mode == 0) {
+		if (mode == VARS) {
 			varsk.add(strtok(line, "="));
 			varsv.add(getval(strtok(nullptr, "\n")));
 			continue;
 		}
 
+		// Read vars 2.
+		if (mode == VARS2) {
+			char* token = strtok(line, "=");
+			int val = getval(strtok(nullptr, "\n"));
+			if (strcmp(token, "REPLACEMENT_ITERATIONS") == 0) {
+				replacement_iterations = val;
+			} else if (strcmp(token, "KNOT_ITERATIONS") == 0) {
+				knot_iterations = val;
+			} else if (strcmp(token, "FIX_SEAMS_ITERATIONS") == 0) {
+				fix_seams_iterations = val;
+			}
+			continue;
+		}
+
 		// Read layers.
-		if (mode == 1) {
+		if (mode == LAYERS) {
 			char* name = (char*)malloc(sizeof(char) * 30); strcpy(name, strtok(line, ","));
 			int height_min = getval(strtok(nullptr, ","));
 			int height_max = getval(strtok(nullptr, ","));
@@ -108,12 +143,12 @@ void Texture_read_layer_files()
 				height_max,
 				slope_min,
 				slope_max
-				});
+			});
 			continue;
 		}
 
 		// Read replacements.
-		if (mode == 2) {
+		if (mode == REPLACEMENTS) {
 			char* grp_a = (char*)malloc(sizeof(char) * 30); strcpy(grp_a, strtok(line, ","));
 			char* grp_b = (char*)malloc(sizeof(char) * 30); strcpy(grp_b, strtok(nullptr, ","));
 			char* repl = (char*)malloc(sizeof(char) * 30); strcpy(repl, strtok(nullptr, "\n"));
@@ -121,12 +156,21 @@ void Texture_read_layer_files()
 				grp_a,
 				grp_b,
 				repl
+			});
+			continue;
+		}
+
+		// Read knots.
+		if (mode == KNOTS) {
+			char* name = (char*)malloc(sizeof(char) * 30); strcpy(name, strtok(line, "\n"));
+			knots.add(TextureLayerKnot{
+				name
 				});
 			continue;
 		}
 
 		// Read inners.
-		if (mode == 3) {
+		if (mode == INNERS) {
 			char* parent_name = (char*)malloc(sizeof(char) * 30); strcpy(parent_name, strtok(line, ","));
 			char* inner_name = (char*)malloc(sizeof(char) * 30); strcpy(inner_name, strtok(nullptr, ","));
 			int border_radius = getval(strtok(nullptr, "\n"));
@@ -134,12 +178,12 @@ void Texture_read_layer_files()
 				parent_name,
 				inner_name,
 				border_radius
-				});
+			});
 			continue;
 		}
 
 		// Read transitions.
-		if (mode == 4) {
+		if (mode == TRANSITIONS) {
 			char* trans_grp = (char*)malloc(sizeof(char) * 30); strcpy(trans_grp, strtok(line, ","));
 			char* from_grp = (char*)malloc(sizeof(char) * 30); strcpy(from_grp, strtok(nullptr, ","));
 			char* to_grp = (char*)malloc(sizeof(char) * 30); strcpy(to_grp, strtok(nullptr, "\n"));
@@ -147,7 +191,7 @@ void Texture_read_layer_files()
 				from_grp,
 				to_grp,
 				trans_grp
-				});
+			});
 			continue;
 		}
 	}
@@ -165,6 +209,10 @@ void Texture_read_layer_files()
 		auto& it = replacements[i];
 		printf("R:%s,%s,%s\n", it.group_a, it.group_b, it.replacement);
 	}
+	for (int i = 0; i < knots.len; ++i) {
+		auto& it = knots[i];
+		printf("K:%s\n", it.group_name);
+	}
 	for (int i = 0; i < inner_layers.len; ++i) {
 		auto& it = inner_layers[i];
 		printf("I:%s,%s,%d\n", it.parent_group_name, it.inner_group_name, it.border_radius);
@@ -173,6 +221,9 @@ void Texture_read_layer_files()
 		auto& it = transitions[i];
 		printf("T:%s,%s,%s\n", it.transition_group, it.from_group, it.to_group);
 	}
+	printf("replacement iterations: %d\n", replacement_iterations);
+	printf("knot iterations: %d\n", knot_iterations);
+	printf("fix seams iterations: %d\n", fix_seams_iterations);
 }
 
 void Texture_cleanup()
@@ -185,6 +236,10 @@ void Texture_cleanup()
 		free(replacements[i].group_a);
 		free(replacements[i].group_b);
 		free(replacements[i].replacement);
+	}
+
+	for (int i = 0; i < knots.len; ++i) {
+		free(knots[i].group_name);
 	}
 
 	for (int i = 0; i < inner_layers.len; ++i) {
@@ -201,6 +256,7 @@ void Texture_cleanup()
 
 	main_layers.clear();
 	replacements.clear();
+	knots.clear();
 	inner_layers.clear();
 	transitions.clear();
 }
