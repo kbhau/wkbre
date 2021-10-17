@@ -275,11 +275,11 @@ MapTexture* Get_texture(const char* group_name, int id)
 {
 	auto* group = Get_texture_group(group_name);
 	if (!group) {
-		printf("nogrp: %s\n", group_name);
+		//printf("nogrp: %s\n", group_name);
 		return nullptr;
 	}
 	if (group->tex->len <= id) {
-		printf("notex: %s: %d\n", group_name, id);
+		//printf("notex: %s: %d\n", group_name, id);
 		return nullptr;
 	}
 	return group->tex->getpnt(id);
@@ -294,7 +294,7 @@ void Set_current_texture_by_name(const char* name)
 			return;
 		}
 	}
-	printf("Set_current_texture_by_name notex\n");
+	//printf("Set_current_texture_by_name notex\n");
 }
 
 bool Tile_in_group(MapTile* tile, const char* group_name)

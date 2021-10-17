@@ -3668,7 +3668,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, char *args, int showMod
 	hInstance = GetModuleHandle(NULL); ReadSettingsFile();
 	//if(argc >= 2) farg = argv[1];
 	//InitD3DXDLL();
-#ifndef WKBRE_RELEASE
+#ifdef WKBRE_RELEASE
 	RunTest();
 #else
 	Test7();
