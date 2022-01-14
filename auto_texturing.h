@@ -55,6 +55,10 @@ struct TextureLayerInner
 	char* parent_group_name;
 	char* inner_group_name;
 	int border_radius;
+	int height_min;
+	int height_max;
+	int slope_min;
+	int slope_max;
 };
 
 struct TextureLayerTransition
@@ -62,7 +66,19 @@ struct TextureLayerTransition
 	char* from_group;
 	char* to_group;
 	char* transition_group;
-	//char* match_group;
+	bool match_from;
+};
+
+struct ObjectDistribution
+{
+	char* tile_group;
+	char* object_name;
+	float probability;
+	float border_distance;
+	int height_min;
+	int height_max;
+	int slope_min;
+	int slope_max;
 };
 
 struct TileTexChange
@@ -81,6 +97,7 @@ extern GrowList<TextureLayerIntermediate> replacements;
 extern GrowList<TextureLayerKnot> knots;
 extern GrowList<TextureLayerInner> inner_layers;
 extern GrowList<TextureLayerTransition> transitions;
+extern GrowList<ObjectDistribution> distributions;
 
 extern int replacement_iterations;
 extern int knot_iterations;
@@ -93,6 +110,25 @@ extern float sqrt2;
 
 void Texture_read_layer_files();
 void Texture_cleanup();
+
+
+extern float tileedgelen;
+inline void Get_edge_slope(uchar a, uchar b, float& slope)
+{
+	float tempslope;
+	tempslope = atan(abs(a * maphiscale - b * maphiscale) / tileedgelen);
+	if (tempslope > slope) {
+		slope = tempslope;
+	}
+}
+inline void Get_diag_slope(uchar a, uchar b, float& slope)
+{
+	float tempslope;
+	tempslope = atan(abs(a * maphiscale - b * maphiscale) / (tileedgelen * sqrt2));
+	if (tempslope > slope) {
+		slope = tempslope;
+	}
+}
 
 
 inline MapTile* Get_tile(MapTile* from, int x, int z)

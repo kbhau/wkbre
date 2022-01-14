@@ -724,6 +724,26 @@ void DisableDepth()
 	glDepthMask(GL_FALSE);
 }
 
+
+unsigned int GetDominantTexColor(texture t, int level)
+{
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, (GLuint)t);
+
+	unsigned int colour;
+	glGetTexImage(
+		GL_TEXTURE_2D,
+		level,
+		GL_RGB,
+		GL_UNSIGNED_INT,
+		&colour
+	);
+
+	glDisable(GL_TEXTURE_2D);
+
+	return colour;
+}
+
 };
 
 IRenderer *CreateOGL1Renderer() {return new OGL1Renderer;}

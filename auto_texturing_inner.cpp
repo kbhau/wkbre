@@ -23,13 +23,15 @@ void Texture_apply_inner_layers()
 	Texture_read_layer_files();
 	Create_change_buffer();
 
-	printf("apply inners 1\n");
+	//printf("apply inners 1\n");
 
 	int i;
 	int x;
 	int z;
 	int counter = 0;
 	bool pure = false;
+	float slope;
+	float height;
 
 	for (int li = 0; li < inner_layers.len; ++li) {
 
@@ -45,11 +47,36 @@ void Texture_apply_inner_layers()
 					continue;
 				}
 
+				// Compute slope and height based on corner vertices.
+				slope = 0;
+				height = 0;
+				int j = tz * (mapwidth+1) + tx;
+				uchar ul = himap_byte[j];
+				uchar ur = himap_byte[j + 1];
+				uchar dl = himap_byte[j + mapwidth + 1];
+				uchar dr = himap_byte[j + mapwidth + 1 + 1];
+				Get_edge_slope(ul, ur, slope);
+				Get_edge_slope(ur, dr, slope);
+				Get_edge_slope(dr, dl, slope);
+				Get_edge_slope(dl, ul, slope);
+				Get_diag_slope(ul, dr, slope);
+				Get_diag_slope(dl, ur, slope);
+				height = (ul + ur + dl + dr) * 0.25 * maphiscale;
+				slope = slope * 57.295779513;
+
+				// If does not meet criteria, skip.
+				if (height < layer.height_min || height >= layer.height_max
+					|| slope < layer.slope_min || slope >= layer.slope_max)
+				{
+					continue;
+				}
+
 				pure = true;
 				for (int ntz = -layer.border_radius; ntz <= layer.border_radius; ++ntz) {
-					for (int ntx = -layer.border_radius; ntx < layer.border_radius; ++ntx) {
+					for (int ntx = -layer.border_radius; ntx <= layer.border_radius; ++ntx) {
 
 						// We iterate square but want circle. Square the circle.
+						if (layer.border_radius > 3)
 						if (ntz * ntz + ntx * ntx > layer.border_radius * layer.border_radius) {
 							continue;
 						}
@@ -72,7 +99,7 @@ void Texture_apply_inner_layers()
 		Apply_change_buffer(layer.inner_group_name);
 	}
 
-	printf("apply inners 2\n");
+	//printf("apply inners 2\n");
 
 	Free_change_buffer();
 	Texture_cleanup();

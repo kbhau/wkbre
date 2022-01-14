@@ -675,6 +675,101 @@ void DisableDepth()
 	ddev->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
 }
 
+
+unsigned int GetDominantTexColor(texture t, int level)
+{
+	// So I had a smart idea about just sampling the 1x1 mipmap to get the main
+	// texture colour. Seems that the editor uses mipmaps to display stuff so
+	// they are generated. But ask D3D9 about them and it says no. Error.
+	// Security through obscurity, spend all day with no success, f u for ever
+	// imagining you could maybe use the graphics api to achieve your earthly
+	// goals.
+
+	// So scroll down through the commented ruins of my code and see how we are
+	// getting the average pixel, pixel by pixel. Bit of consolation is that we
+	// are only doing it once and then the value is saved.
+
+	// BTW. I have't tested the OpenGL renderer. I am sure it will work exactly
+	// as intended.
+
+	//tx->GenerateMipSubLevels();
+
+	/*IDirect3DSurface9* surf;
+	auto hr = tx->GetSurfaceLevel(level, &surf);
+	if (hr != D3D_OK) {
+		return (255 << 16) | (255 << 24);
+	}
+	hr = surf->LockRect(&lr, NULL, 0);
+	if (hr != D3D_OK) {
+		return (128 << 16) | (255 << 24);
+	}
+	memcpy(&colour, lr.pBits, sizeof(uint));
+	surf->UnlockRect();
+	if (colour > 0) {
+		return colour;
+	}
+	return 0;*/
+
+
+
+	//tx->LockRect(level, &lr, NULL, 0);
+	//if (hr == D3D_OK) {
+	//	memcpy(&colour, lr.pBits, sizeof(uint));
+	//	tx->UnlockRect(level);
+
+	//	if (colour > 0) {
+	//		return colour;
+	//	}
+	//	return 0;// (255 << 24) | (128 << 16) | (128 << 16) | (128 << 0);
+	//} else {
+	//	//printf("error.\n");
+	//	return (255 << 16) | (255 << 24);
+	//}
+
+
+	// Split the components, double precision to save them pixel contributions.
+	auto r = 0.0;
+	auto g = 0.0;
+	auto b = 0.0;
+
+	// Get the size of the tex. From mipmap level. Yeah.
+	auto size = pow(2, level);
+	auto pxmult = 1.0 / ((double)size * (double)size);
+	pxmult /= 255.0;
+
+	auto colour = 0U;
+	auto tx = ((IDirect3DTexture9*)t);
+	auto offset = 0U;
+	D3DLOCKED_RECT lr;
+
+	// Get the texture lock.
+	auto hr = tx->LockRect(0, &lr, NULL, 0);
+
+	if (hr != D3D_OK) {
+		// Output communistic red for error.
+		return (255 << 16) | (255 << 24);
+	}
+
+	// Lock ok, read data.
+	for (int x = 0; x < size; ++x)
+	for (int y = 0; y < size; ++y)
+	{
+		//printf("[%d]", offset);
+		memcpy(&colour, (char*)lr.pBits + offset, sizeof(uint));
+		offset += sizeof(uint);
+
+		r += ((colour >> 16) & 255U) * pxmult;
+		g += ((colour >> 8) & 255U) * pxmult;
+		b += ((colour >> 0) & 255U) * pxmult;
+	}
+	tx->UnlockRect(0);
+	return (255U << 24)
+		| ((uchar)(r * 255.0) << 16)
+		| ((uchar)(g * 255.0) << 8)
+		| ((uchar)(b * 255.0) << 0);
+}
+
+
 };
 
 IRenderer *CreateD3D9Renderer() {return new D3D9Renderer;}

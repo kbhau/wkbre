@@ -126,6 +126,9 @@ struct IRenderer
 
 	// ImGui
 	virtual void InitImGuiDrawing() = 0;
+
+	// Misc
+	virtual unsigned int GetDominantTexColor(texture t, int level) = 0;
 };
 
 IRenderer *CreateNULLRenderer();

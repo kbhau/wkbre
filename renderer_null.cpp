@@ -129,6 +129,12 @@ struct NULLRenderer : public IRenderer
 
 	// ImGui
 	void InitImGuiDrawing() {}
+
+	// Misc
+	unsigned int GetDominantTexColor(texture t, int level)
+	{
+		return 0;
+	}
 };
 
 IRenderer *CreateNULLRenderer() {return new NULLRenderer;}

@@ -108,12 +108,14 @@ void AddMapTexture(MapTextureGroup *g, char **word)
 	t->x = atoi(word[2]); t->y = atoi(word[3]);
 	t->w = atoi(word[4]); t->h = atoi(word[5]);
 	t->id = atoi(word[6]);
+	t->colour = 0;
 	TranslateMapTexture(n, &t->x, &t->y);
 
 	char p[512];
 	strcpy(p, "Maps\\Map_Textures\\");
 	strcat(p, n);
 	//printf("[DBG] %s\n", p);
+
 	t->t = GetTexture(p);
 
 	int f = maptexfilenames.find(n);
