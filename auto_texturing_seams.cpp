@@ -558,6 +558,13 @@ bool Match_tiles2(TextureLayerTransition* transition)
 			}
 		}
 
+		if (strcmp(transition->transition_group, "ROCKYGRASS2-D_EARTH1") == 0) {
+			for (int i = 0; i < bufsize; ++i) {
+				if (changebuf[i].tile_id == 2) {
+					changebuf[i].tile_id = 9;
+				}
+			}
+		}
 		Apply_change_buffer(transition->transition_group, transition->from_group);
 
 		if (!ok) {

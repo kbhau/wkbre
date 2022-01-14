@@ -29,6 +29,8 @@ void Texture_apply_main_layers();
 void Texture_replace_missing_transitions();
 void Texture_apply_inner_layers();
 void Texture_fix_seams();
+void Distribute_objects();
+
 
 HINSTANCE hInstance;
 GEContainer *actualpage = 0;
@@ -96,6 +98,7 @@ MenuEntry menucmds[] = {
 {"Change player color...", CMD_CHANGE_PLAYER_COLOR},
 {"Select object by ID...", CMD_SELECT_OBJECT_ID},
 {"Enable/disable aligned movement", CMD_CHANGE_OBJMOVALIGN},
+{"Distribute objects", CMD_OBJECTS_DISTRIBUTE},
 {0,0},
 {"Pause/Resume", CMD_PAUSE},
 {"Increase game speed", CMD_GAME_SPEED_FASTER},
@@ -1060,6 +1063,9 @@ void CallCommand(int cmd)
 			break;
 		case CMD_TEXTURING_FIX_SEAMS:
 			Texture_fix_seams();
+			break;
+		case CMD_OBJECTS_DISTRIBUTE:
+			Distribute_objects();
 			break;
 	}
 }
@@ -3139,6 +3145,7 @@ void IGMainMenuBar()
 			if (ImGui::MenuItem("Delete class...")) CallCommand(CMD_DELETEOBJCLASS);
 			ImGui::EndMenu();
 		}
+		if (ImGui::MenuItem("Distribute objects")) CallCommand(CMD_OBJECTS_DISTRIBUTE);
 		ImGui::EndMenu();
 	}
 	if(ImGui::BeginMenu("Game"))

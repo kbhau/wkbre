@@ -24,6 +24,7 @@ GrowList<TextureLayerIntermediate> replacements;
 GrowList<TextureLayerInner> inner_layers;
 GrowList<TextureLayerTransition> transitions;
 GrowList<TextureLayerKnot> knots;
+GrowList<ObjectDistribution> distributions;
 
 int replacement_iterations = 100;
 int knot_iterations = 1;
@@ -34,7 +35,7 @@ float sqrt2 = sqrt(2);
 int bufsize = 0;
 TileTexChange* changebuf;
 
-float tileedgelen = 4;
+float tileedgelen = 5;
 
 
 
@@ -45,7 +46,8 @@ enum Tlf_mode_enum {
 	REPLACEMENTS,
 	KNOTS,
 	INNERS,
-	TRANSITIONS
+	TRANSITIONS,
+	DISTRIBUTIONS
 };
 
 
@@ -75,6 +77,15 @@ void Texture_read_layer_files()
 			}
 		}
 		return atoi(token);
+	};
+	auto getvalf = [](char* token)->float
+	{
+		/*for (int i = 0; i < varsk.len; ++i) {
+			if (strcmp(token, varsk.getdp(i)) == 0) {
+				return varsv[i];
+			}
+		}*/
+		return atof(token);
 	};
 
 	// Loop until end reached.
@@ -106,6 +117,8 @@ void Texture_read_layer_files()
 				mode = INNERS;
 			} else if (strcmp(line, "!TRANSITIONS\n") == 0) {
 				mode = TRANSITIONS;
+			} else if (strcmp(line, "!DISTRIBUTIONS\n") == 0) {
+				mode = DISTRIBUTIONS;
 			} else {
 				mode = -1;
 			}
@@ -208,6 +221,29 @@ void Texture_read_layer_files()
 			free(match_from);
 			continue;
 		}
+
+		// Read transitions.
+		if (mode == DISTRIBUTIONS) {
+			char* tile_grp = (char*)malloc(sizeof(char) * namelen); strcpy(tile_grp, strtok(line, ","));
+			char* obj_name = (char*)malloc(sizeof(char) * namelen); strcpy(obj_name, strtok(nullptr, ","));
+			float prob = getvalf(strtok(nullptr, ","));
+			float border = getvalf(strtok(nullptr, ","));
+			int height_min = getval(strtok(nullptr, ","));
+			int height_max = getval(strtok(nullptr, ","));
+			int slope_min = getval(strtok(nullptr, ","));
+			int slope_max = getval(strtok(nullptr, "\n"));
+			distributions.add(ObjectDistribution{
+				tile_grp,
+				obj_name,
+				prob,
+				border,
+				height_min,
+				height_max,
+				slope_min,
+				slope_max
+			});
+			continue;
+		}
 	}
 
 	// Free resources.
@@ -233,7 +269,11 @@ void Texture_read_layer_files()
 	}
 	for (int i = 0; i < transitions.len; ++i) {
 		auto& it = transitions[i];
-		printf("T:%s,%s,%s,%d\n", it.transition_group, it.from_group, it.to_group, it.match_from);
+		//printf("T:%s,%s,%s,%d\n", it.transition_group, it.from_group, it.to_group, it.match_from);
+	}
+	for (int i = 0; i < distributions.len; ++i) {
+		auto& it = distributions[i];
+		//printf("T:%s,%s,%f,%f\n", it.tile_group, it.object_name, it.probability, it.border_distance);
 	}
 	//printf("replacement iterations: %d\n", replacement_iterations);
 	//printf("knot iterations: %d\n", knot_iterations);
@@ -268,11 +308,17 @@ void Texture_cleanup()
 		free(transitions[i].transition_group);
 	}
 
+	for (int i = 0; i < distributions.len; ++i) {
+		free(distributions[i].tile_group);
+		free(distributions[i].object_name);
+	}
+
 	main_layers.clear();
 	replacements.clear();
 	knots.clear();
 	inner_layers.clear();
 	transitions.clear();
+	distributions.clear();
 }
 
 MapTextureGroup* Get_texture_group(const char* name)
@@ -324,13 +370,13 @@ bool Tile_in_group(MapTile* tile, const char* group_name)
 		return false;
 	}
 	auto name = tile->mt->grp->name;
-	if (!(name[0] >= 'A' && name[0] <= 'Z'
-		&& name[1] >= 'A' && name[1] <= 'Z'
-		&& name[2] >= 'A' && name[2] <= 'Z'))
-	{
-		//printf("\nx: %d z: %d err grp rubbish\n", tile->x, tile->z);
-		return false;
-	}
+	//if (!(name[0] >= 'A' && name[0] <= 'Z'
+	//	&& name[1] >= 'A' && name[1] <= 'Z'
+	//	&& name[2] >= 'A' && name[2] <= 'Z'))
+	//{
+	//	//printf("\nx: %d z: %d err grp rubbish\n", tile->x, tile->z);
+	//	return false;
+	//}
 	return strcmp(name, group_name) == 0;
 }
 

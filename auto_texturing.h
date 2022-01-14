@@ -69,6 +69,18 @@ struct TextureLayerTransition
 	bool match_from;
 };
 
+struct ObjectDistribution
+{
+	char* tile_group;
+	char* object_name;
+	float probability;
+	float border_distance;
+	int height_min;
+	int height_max;
+	int slope_min;
+	int slope_max;
+};
+
 struct TileTexChange
 {
 	int tile_id;
@@ -85,6 +97,7 @@ extern GrowList<TextureLayerIntermediate> replacements;
 extern GrowList<TextureLayerKnot> knots;
 extern GrowList<TextureLayerInner> inner_layers;
 extern GrowList<TextureLayerTransition> transitions;
+extern GrowList<ObjectDistribution> distributions;
 
 extern int replacement_iterations;
 extern int knot_iterations;

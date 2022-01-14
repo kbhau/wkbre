@@ -780,7 +780,7 @@ void CreateMinimap(Bitmap &bhm, int bmpwh, bool drawedge)
 		auto b = ((c >> 0) & 255U) / 255.f;
 
 		// Add sun - dot product.
-		float tileedgelen = 4;
+		float tileedgelen = 5;
 		Vector3 vo, vr, vd;
 		vo.x = 0; vo.z = 0; vo.y = himap_byte[v] * maphiscale;
 		vr.x = tileedgelen; vr.z = 0; vr.y = himap_byte[v + 1] * maphiscale;
