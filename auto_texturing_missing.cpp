@@ -200,13 +200,13 @@ void Texture_replace_missing_transitions()
 			ok2 = Apply_replacements();
 
 			if (++counter2 >= replacement_iterations) {
-				printf("replacements max iterations reached\n");
+				//printf("replacements max iterations reached\n");
 				break;
 			}
 		}
 		
 		if (++counter1 >= knot_iterations) {
-			printf("knots max iterations reached\n");
+			//printf("knots max iterations reached\n");
 			break;
 		}
 	}

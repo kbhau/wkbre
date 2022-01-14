@@ -17,6 +17,7 @@ struct MapTexture
 	int tfid;
 	MapTextureGroup *grp;
 	GrowList<MapTextureEdge> *atdir; // pointer to GrowList<MapTextureEdge>[4]
+	unsigned int colour = 0;
 };
 
 struct MapTextureGroup

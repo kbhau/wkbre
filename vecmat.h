@@ -36,6 +36,7 @@ void TransposeMatrix(Matrix *m, const Matrix *a);
 //void InverseMatrix(Matrix *o, const Matrix *i);
 
 // Vector operations
+void Vec3Cross(Vector3* r, const Vector3* a, const Vector3* b);
 void TransformVector3(Vector3 *v, const Vector3 *a, const Matrix *m);
 void TransformNormal3(Vector3 *v, const Vector3 *a, const Matrix *m);
 void TransformCoord3(Vector3 *r, const Vector3 *v, const Matrix *m);

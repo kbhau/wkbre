@@ -18,27 +18,6 @@
 
 
 
-float tileedgelen = 4;
-inline void Get_edge_slope(uchar a, uchar b, float& slope)
-{
-	float tempslope;
-	tempslope = atan(abs(a * maphiscale - b * maphiscale) / tileedgelen);
-	if (tempslope > slope) {
-		slope = tempslope;
-	}
-}
-
-
-inline void Get_diag_slope(uchar a, uchar b, float& slope)
-{
-	float tempslope;
-	tempslope = atan(abs(a * maphiscale - b * maphiscale) / (tileedgelen * sqrt2));
-	if (tempslope > slope) {
-		slope = tempslope;
-	}
-}
-
-
 // Use first to apply base texture layers.
 void Texture_apply_main_layers()
 {
@@ -98,10 +77,10 @@ void Texture_apply_main_layers()
 				}
 			}
 		}
-		printf("layer smin=%d smax=%d\n", layer.slope_min, layer.slope_max);
+		//printf("layer smin=%d smax=%d\n", layer.slope_min, layer.slope_max);
 	}
-	printf("maxslope: %.5f\n", maxslope);
-	printf("avslope: %.5f\n", avslope / avtiles);
+	//printf("maxslope: %.5f\n", maxslope);
+	//printf("avslope: %.5f\n", avslope / avtiles);
 
 	Texture_cleanup();
 }

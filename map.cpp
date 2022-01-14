@@ -485,7 +485,7 @@ void LoadMap(char *filename, int bitoff)
 	char *pp = stn + strlen(stn);
 	for (int i = 0; i < 5; i++) {
 		strcpy(pp, skyfilenames[i]);
-		printf(stn);
+		//printf(stn);
 		skyboxtex[i] = LoadTexture(stn, 1, 1);
 	}
 }
@@ -756,14 +756,101 @@ void CreateMinimap(Bitmap &bhm, int bmpwh, bool drawedge)
 	else          {mmh = bmpwh; mmw = ltw * bmpwh / lth;}
 	int sx = bmpwh/2-mmw/2, sy = bmpwh/2-mmh/2;
 	int mmedge = drawedge ? 0 : mapedge;
+
 	for(int y = sy; y < sy+mmh; y++)
 	for(int x = sx; x < sx+mmw; x++)
 	{
 		int v = ((y-sy) * lvh / mmh + mmedge) * (mapwidth+1) + (x-sx) * lvw / mmw + mmedge;
 		int t = ((y-sy) * lth / mmh + mmedge) * mapwidth     + (x-sx) * ltw / mmw + mmedge;
-		bhm.pix[3*(y*bmpwh+x)+0] = 0;
-		bhm.pix[3*(y*bmpwh+x)+1] = himap_byte[v] * 3 / 4 + 64;
-		bhm.pix[3*(y*bmpwh+x)+2] = maptiles[t].lake ? 255 /*bhm.pix[3*(y*bmpwh+x)+1]*/ : 0;
+
+		// Get tile colour.
+		auto c = maptiles[t].mt->colour;
+		if (c == 0) {
+			auto dim = maptiles[t].mt->w;
+			auto level = 0;
+			while (dim > 1) {
+				dim /= 2;
+				++level;
+			}
+			c =	renderer->GetDominantTexColor(maptiles[t].mt->t, level);
+			maptiles[t].mt->colour = c;
+		}
+		auto r = ((c >> 16) & 255U) / 255.f;
+		auto g = ((c >> 8) & 255U) / 255.f;
+		auto b = ((c >> 0) & 255U) / 255.f;
+
+		// Add sun - dot product.
+		float tileedgelen = 4;
+		Vector3 vo, vr, vd;
+		vo.x = 0; vo.z = 0; vo.y = himap_byte[v] * maphiscale;
+		vr.x = tileedgelen; vr.z = 0; vr.y = himap_byte[v + 1] * maphiscale;
+		vd.x = 0; vd.z = tileedgelen; vd.y = himap_byte[v + mapwidth + 1] * maphiscale;
+		vr -= vo;
+		vd -= vo;
+		vr = vr.normal();
+		vd = vd.normal();
+		Vec3Cross(&vo, &vr, &vd);
+		auto sv = -mapsunvector.normal();
+		sv.z = -sv.z;
+		/*auto tmp = sv.z;
+		sv.z = -sv.y;
+		sv.y = tmp;*/
+		/*auto tmp = sv.z;
+		sv.z = sv.x;
+		sv.x = tmp;*/
+		float sunfactor = vo.dot(sv);
+		/*printf("vr[%f][%f][%f]\n", vr.x, vr.y, vr.z);
+		printf("vd[%f][%f][%f]\n", vd.x, vd.y, vd.z);
+		printf("vo[%f][%f][%f]\n", vo.x, vo.y, vo.z);
+		printf("sn[%f][%f][%f]\n", mapsunvector.x, mapsunvector.y, mapsunvector.z);
+		printf("[%f]\n", sunfactor);*/
+
+		// Add sun - colour blend.
+		//sunfactor += 1.f;
+		//sunfactor /= 2.f;
+		sunfactor = sunfactor < 0.f ? 0.f : sunfactor;
+		sunfactor = isnan(sunfactor) ? 0.f : sunfactor;
+		r = r * 0.5 + r * 0.5 * sunfactor * ((mapsuncolor >> 16) & 255U) / 255.f;
+		g = g * 0.5 + g * 0.5 * sunfactor * ((mapsuncolor >> 8) & 255U) / 255.f;
+		b = b * 0.5 + b * 0.5 * sunfactor * ((mapsuncolor >> 0) & 255U) / 255.f;
+
+		// Add water.
+		auto wr = 0.1f;
+		auto wg = 0.75f;
+		auto wb = 1.0f;
+		auto wwr = 0.05f;
+		auto wwg = 0.4f;
+		auto wwb = 0.57f;
+		if (maptiles[t].lake) {
+			auto wh = maptiles[t].waterlev - himap_byte[v] * maphiscale;
+			auto wt = wh;
+			wh /= 4.f;
+			wh = wh > 1.f ? 1.f : wh;
+			wh = wh < 0.f ? 0.f : wh;
+			wt /= 12.f;
+			wt = wt > 1.f ? 1.f : wt;
+			wt = wt < 0.f ? 0.f : wt;
+			auto w = 0.25f + 0.5f * wt;
+			auto l = 1.0f - w;
+			wh *= wh;
+			wh *= wh;
+			r = r * l + w * (wr * (1.f - wh) + wh * wwr);
+			g = g * l + w * (wg * (1.f - wh) + wh * wwg);
+			b = b * l + w * (wb * (1.f - wh) + wh * wwb);
+		}
+
+		// Add fog.
+		auto height_mult = himap_byte[v] / 255.f;
+		auto f = 0.1f + 0.1 * (1.f - height_mult);
+		auto l = 1.0f - f;
+		r = r * l + ((mapfogcolor >> 16) & 255U) / 255.f * f;
+		g = g * l + ((mapfogcolor >> 8) & 255U) / 255.f * f;
+		b = b * l + ((mapfogcolor >> 0) & 255U) / 255.f * f;
+
+		// Write pixel.
+		bhm.pix[3 * (y * bmpwh + x) + 0] = r * 255.f;
+		bhm.pix[3 * (y * bmpwh + x) + 1] = g * 255.f;
+		bhm.pix[3 * (y * bmpwh + x) + 2] = b * 255.f;
 	}
 }
 
