@@ -71,115 +71,115 @@ bool Apply_replacements()
 }
 
 
-bool Resolve_knots()
-{
-	int i;
-	bool ok = true;
-	bool tileok;
-	bool layerok;
-	int counter = 0;
-
-	char* other_group;
-	for (int li = 0; li < knots.len; ++li) {
-
-		auto& layer = knots[li];
-		auto* tex = Get_texture_group(layer.group_name);
-
-		layerok = false;
-		while (!layerok) {
-			layerok = true;
-			for (int tz = 0; tz < mapwidth; ++tz) {
-				for (int tx = 0; tx < mapheight; ++tx) {
-
-					i = tz * mapwidth + tx;
-					auto* tile = &(maptiles[i]);
-					if (!Tile_in_group(tile, layer.group_name)) {
-						continue;
-					}
-
-					tileok = true;
-					other_group = nullptr;
-					for (int ntz = -1; ntz < 2; ++ntz) {
-						for (int ntx = -1; ntx < 2; ++ntx) {
-
-							/*if (ntx != 0 && ntz != 0) {
-								continue;
-							}*/
-
-							auto tile2 = Get_tile(tile, ntx, ntz);
-							if (!tile2) {
-								continue;
-							}
-
-							if (!Tile_in_group(tile2, layer.group_name)) {
-								if (!other_group) {
-									for (int j = 0; j < transitions.len; ++j) {
-										if (strcmp(transitions[j].from_group, layer.group_name) == 0
-											&& Tile_in_group(tile2, transitions[j].to_group))
-										{
-											other_group = transitions[j].to_group;
-											break;
-										}
-										if (strcmp(transitions[j].to_group, layer.group_name) == 0
-											&& Tile_in_group(tile2, transitions[j].from_group))
-										{
-											other_group = transitions[j].from_group;
-											break;
-										}
-									}
-									tileok = false;
-									goto exloop;
-								} else if (!Tile_in_group(tile2, other_group)) {
-									tileok = false;
-									goto exloop;
-								}
-							}
-						}
-					}
-				exloop:
-					if (!tileok) {
-						layerok = false;
-						ok = false;
-						for (int ntz = -1; ntz < 2; ++ntz) {
-							for (int ntx = -1; ntx < 2; ++ntx) {
-
-								if (ntx != 0 && ntz != 0) {
-									continue;
-								}
-
-								auto tile2 = Get_tile(tile, ntx, ntz);
-								if (!tile2) {
-									continue;
-								}
-
-								if (!other_group) {
-									changebuf[tile2->z * mapwidth + tile2->x].tile_id =
-										rand() % tex->tex->len;
-									continue;
-								}
-								
-								if (!Tile_in_group(tile2, other_group)) {
-									changebuf[tile2->z * mapwidth + tile2->x].tile_id =
-										rand() % tex->tex->len;
-								}
-							}
-						}
-					}
-
-				} // tiles
-			}
-
-			Apply_change_buffer(layer.group_name);
-
-			if (++counter >= knot_iterations) {
-				break;
-			}
-		}
-
-	}
-
-	return ok;
-}
+//bool Resolve_knots()
+//{
+//	int i;
+//	bool ok = true;
+//	bool tileok;
+//	bool layerok;
+//	int counter = 0;
+//
+//	char* other_group;
+//	for (int li = 0; li < knots.len; ++li) {
+//
+//		auto& layer = knots[li];
+//		auto* tex = Get_texture_group(layer.group_name);
+//
+//		layerok = false;
+//		while (!layerok) {
+//			layerok = true;
+//			for (int tz = 0; tz < mapwidth; ++tz) {
+//				for (int tx = 0; tx < mapheight; ++tx) {
+//
+//					i = tz * mapwidth + tx;
+//					auto* tile = &(maptiles[i]);
+//					if (!Tile_in_group(tile, layer.group_name)) {
+//						continue;
+//					}
+//
+//					tileok = true;
+//					other_group = nullptr;
+//					for (int ntz = -1; ntz < 2; ++ntz) {
+//						for (int ntx = -1; ntx < 2; ++ntx) {
+//
+//							/*if (ntx != 0 && ntz != 0) {
+//								continue;
+//							}*/
+//
+//							auto tile2 = Get_tile(tile, ntx, ntz);
+//							if (!tile2) {
+//								continue;
+//							}
+//
+//							if (!Tile_in_group(tile2, layer.group_name)) {
+//								if (!other_group) {
+//									for (int j = 0; j < transitions.len; ++j) {
+//										if (strcmp(transitions[j].from_group, layer.group_name) == 0
+//											&& Tile_in_group(tile2, transitions[j].to_group))
+//										{
+//											other_group = transitions[j].to_group;
+//											break;
+//										}
+//										if (strcmp(transitions[j].to_group, layer.group_name) == 0
+//											&& Tile_in_group(tile2, transitions[j].from_group))
+//										{
+//											other_group = transitions[j].from_group;
+//											break;
+//										}
+//									}
+//									tileok = false;
+//									goto exloop;
+//								} else if (!Tile_in_group(tile2, other_group)) {
+//									tileok = false;
+//									goto exloop;
+//								}
+//							}
+//						}
+//					}
+//				exloop:
+//					if (!tileok) {
+//						layerok = false;
+//						ok = false;
+//						for (int ntz = -1; ntz < 2; ++ntz) {
+//							for (int ntx = -1; ntx < 2; ++ntx) {
+//
+//								if (ntx != 0 && ntz != 0) {
+//									continue;
+//								}
+//
+//								auto tile2 = Get_tile(tile, ntx, ntz);
+//								if (!tile2) {
+//									continue;
+//								}
+//
+//								if (!other_group) {
+//									changebuf[tile2->z * mapwidth + tile2->x].tile_id =
+//										rand() % tex->tex->len;
+//									continue;
+//								}
+//								
+//								if (!Tile_in_group(tile2, other_group)) {
+//									changebuf[tile2->z * mapwidth + tile2->x].tile_id =
+//										rand() % tex->tex->len;
+//								}
+//							}
+//						}
+//					}
+//
+//				} // tiles
+//			}
+//
+//			Apply_change_buffer(layer.group_name);
+//
+//			if (++counter >= knot_iterations) {
+//				break;
+//			}
+//		}
+//
+//	}
+//
+//	return ok;
+//}
 
 
 void Texture_replace_missing_transitions()
@@ -194,7 +194,7 @@ void Texture_replace_missing_transitions()
 	while (!ok1) {
 		ok1 = true;
 
-		ok1 = Resolve_knots();
+		//ok1 = Resolve_knots();
 
 		while (!ok2) {
 			ok2 = Apply_replacements();
@@ -205,10 +205,10 @@ void Texture_replace_missing_transitions()
 			}
 		}
 		
-		if (++counter1 >= knot_iterations) {
-			//printf("knots max iterations reached\n");
-			break;
-		}
+		//if (++counter1 >= knot_iterations) {
+		//	//printf("knots max iterations reached\n");
+		//	break;
+		//}
 	}
 
 	Free_change_buffer();

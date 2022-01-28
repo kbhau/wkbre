@@ -45,9 +45,14 @@ struct TextureLayerIntermediate
 	char* replacement;
 };
 
-struct TextureLayerKnot
+struct TextureLayerFeathering
 {
-	char* group_name;
+	char* from;
+	char* to;
+	int border;
+	int seek_radius;
+	float probability;
+	int iterations;
 };
 
 struct TextureLayerInner
@@ -94,14 +99,15 @@ struct TileTexChange
 
 extern GrowList<TextureLayerMain> main_layers;
 extern GrowList<TextureLayerIntermediate> replacements;
-extern GrowList<TextureLayerKnot> knots;
+extern GrowList<TextureLayerFeathering> feathers;
 extern GrowList<TextureLayerInner> inner_layers;
 extern GrowList<TextureLayerTransition> transitions;
 extern GrowList<ObjectDistribution> distributions;
 
 extern int replacement_iterations;
-extern int knot_iterations;
 extern int fix_seams_iterations;
+extern int fill_islands_min_neighbours;
+extern float sun_factor;
 
 extern float sqrt2;
 

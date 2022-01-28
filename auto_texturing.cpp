@@ -23,12 +23,12 @@ GrowList<TextureLayerMain> main_layers;
 GrowList<TextureLayerIntermediate> replacements;
 GrowList<TextureLayerInner> inner_layers;
 GrowList<TextureLayerTransition> transitions;
-GrowList<TextureLayerKnot> knots;
+GrowList<TextureLayerFeathering> feathers;
 GrowList<ObjectDistribution> distributions;
 
 int replacement_iterations = 100;
-int knot_iterations = 1;
 int fix_seams_iterations = 100;
+int fill_islands_min_neighbours = 3;
 
 float sqrt2 = sqrt(2);
 
@@ -41,12 +41,13 @@ float tileedgelen = 5;
 
 enum Tlf_mode_enum {
 	VARS = 0,
+	VARSF,
 	VARS2,
 	LAYERS,
-	REPLACEMENTS,
-	KNOTS,
+	FEATHERING,
 	INNERS,
 	TRANSITIONS,
+	REPLACEMENTS,
 	DISTRIBUTIONS
 };
 
@@ -69,6 +70,8 @@ void Texture_read_layer_files()
 	int mode = -1; // -1 = undefined, 0 = vars, 1 = layers, 2 = inners, 3 = transitions
 	GrowStringList varsk;
 	GrowList<int> varsv;
+	GrowStringList fvarsk;
+	GrowList<float> fvarsv;
 
 	auto getval = [&varsk, &varsv](char* token)->int {
 		for (int i = 0; i < varsk.len; ++i) {
@@ -78,13 +81,13 @@ void Texture_read_layer_files()
 		}
 		return atoi(token);
 	};
-	auto getvalf = [](char* token)->float
+	auto getvalf = [&fvarsk, &fvarsv](char* token)->float
 	{
-		/*for (int i = 0; i < varsk.len; ++i) {
-			if (strcmp(token, varsk.getdp(i)) == 0) {
-				return varsv[i];
+		for (int i = 0; i < fvarsk.len; ++i) {
+			if (strcmp(token, fvarsk.getdp(i)) == 0) {
+				return fvarsv[i];
 			}
-		}*/
+		}
 		return atof(token);
 	};
 
@@ -105,18 +108,20 @@ void Texture_read_layer_files()
 		if (line[0] == '!') {
 			if (strcmp(line, "!VARS\n") == 0) {
 				mode = VARS;
+			} else if (strcmp(line, "!VARSF\n") == 0) {
+				mode = VARSF;
 			} else if (strcmp(line, "!VARS2\n") == 0) {
 				mode = VARS2;
 			} else if (strcmp(line, "!LAYERS\n") == 0) {
 				mode = LAYERS;
-			} else if (strcmp(line, "!REPLACEMENTS\n") == 0) {
-				mode = REPLACEMENTS;
-			} else if (strcmp(line, "!KNOTS\n") == 0) {
-				mode = KNOTS;
 			} else if (strcmp(line, "!INNERS\n") == 0) {
 				mode = INNERS;
+			} else if (strcmp(line, "!FEATHERING\n") == 0) {
+				mode = FEATHERING;
 			} else if (strcmp(line, "!TRANSITIONS\n") == 0) {
 				mode = TRANSITIONS;
+			} else if (strcmp(line, "!REPLACEMENTS\n") == 0) {
+				mode = REPLACEMENTS;
 			} else if (strcmp(line, "!DISTRIBUTIONS\n") == 0) {
 				mode = DISTRIBUTIONS;
 			} else {
@@ -132,16 +137,22 @@ void Texture_read_layer_files()
 			continue;
 		}
 
+		// Read vars.
+		if (mode == VARSF) {
+			fvarsk.add(strtok(line, "="));
+			fvarsv.add(getvalf(strtok(nullptr, "\n")));
+			continue;
+		}
+
 		// Read vars 2.
 		if (mode == VARS2) {
 			char* token = strtok(line, "=");
-			int val = getval(strtok(nullptr, "\n"));
 			if (strcmp(token, "REPLACEMENT_ITERATIONS") == 0) {
-				replacement_iterations = val;
-			} else if (strcmp(token, "KNOT_ITERATIONS") == 0) {
-				knot_iterations = val;
+				replacement_iterations = getval(strtok(nullptr, "\n"));
 			} else if (strcmp(token, "FIX_SEAMS_ITERATIONS") == 0) {
-				fix_seams_iterations = val;
+				fix_seams_iterations = getval(strtok(nullptr, "\n"));
+			} else if (strcmp(token, "FILL_ISLANDS_MIN_NEIGHBOURS") == 0) {
+				fill_islands_min_neighbours = getval(strtok(nullptr, "\n"));
 			}
 			continue;
 		}
@@ -160,28 +171,6 @@ void Texture_read_layer_files()
 				slope_min,
 				slope_max
 			});
-			continue;
-		}
-
-		// Read replacements.
-		if (mode == REPLACEMENTS) {
-			char* grp_a = (char*)malloc(sizeof(char) * namelen); strcpy(grp_a, strtok(line, ","));
-			char* grp_b = (char*)malloc(sizeof(char) * namelen); strcpy(grp_b, strtok(nullptr, ","));
-			char* repl = (char*)malloc(sizeof(char) * namelen); strcpy(repl, strtok(nullptr, "\n"));
-			replacements.add(TextureLayerIntermediate{
-				grp_a,
-				grp_b,
-				repl
-			});
-			continue;
-		}
-
-		// Read knots.
-		if (mode == KNOTS) {
-			char* name = (char*)malloc(sizeof(char) * namelen); strcpy(name, strtok(line, "\n"));
-			knots.add(TextureLayerKnot{
-				name
-				});
 			continue;
 		}
 
@@ -206,6 +195,38 @@ void Texture_read_layer_files()
 			continue;
 		}
 
+		// Read knots.
+		if (mode == FEATHERING) {
+			char* from = (char*)malloc(sizeof(char) * namelen); strcpy(from, strtok(line, ","));
+			char* to = (char*)malloc(sizeof(char) * namelen); strcpy(to, strtok(nullptr, ","));
+			int border = getval(strtok(nullptr, ","));
+			int seek_radius = getval(strtok(nullptr, ","));
+			float prob = getvalf(strtok(nullptr, ","));
+			int iterations = getval(strtok(nullptr, "\n"));
+			feathers.add(TextureLayerFeathering{
+				from,
+				to,
+				border,
+				seek_radius,
+				prob,
+				iterations
+			});
+			continue;
+		}
+
+		// Read replacements.
+		if (mode == REPLACEMENTS) {
+			char* grp_a = (char*)malloc(sizeof(char) * namelen); strcpy(grp_a, strtok(line, ","));
+			char* grp_b = (char*)malloc(sizeof(char) * namelen); strcpy(grp_b, strtok(nullptr, ","));
+			char* repl = (char*)malloc(sizeof(char) * namelen); strcpy(repl, strtok(nullptr, "\n"));
+			replacements.add(TextureLayerIntermediate{
+				grp_a,
+				grp_b,
+				repl
+			});
+			continue;
+		}
+
 		// Read transitions.
 		if (mode == TRANSITIONS) {
 			char* trans_grp = (char*)malloc(sizeof(char) * namelen); strcpy(trans_grp, strtok(line, ","));
@@ -222,7 +243,7 @@ void Texture_read_layer_files()
 			continue;
 		}
 
-		// Read transitions.
+		// Read distributions.
 		if (mode == DISTRIBUTIONS) {
 			char* tile_grp = (char*)malloc(sizeof(char) * namelen); strcpy(tile_grp, strtok(line, ","));
 			char* obj_name = (char*)malloc(sizeof(char) * namelen); strcpy(obj_name, strtok(nullptr, ","));
@@ -259,8 +280,8 @@ void Texture_read_layer_files()
 		auto& it = replacements[i];
 		//printf("R:%s,%s,%s\n", it.group_a, it.group_b, it.replacement);
 	}
-	for (int i = 0; i < knots.len; ++i) {
-		auto& it = knots[i];
+	for (int i = 0; i < feathers.len; ++i) {
+		auto& it = feathers[i];
 		//printf("K:%s\n", it.group_name);
 	}
 	for (int i = 0; i < inner_layers.len; ++i) {
@@ -292,8 +313,9 @@ void Texture_cleanup()
 		free(replacements[i].replacement);
 	}
 
-	for (int i = 0; i < knots.len; ++i) {
-		free(knots[i].group_name);
+	for (int i = 0; i < feathers.len; ++i) {
+		free(feathers[i].from);
+		free(feathers[i].to);
 	}
 
 	for (int i = 0; i < inner_layers.len; ++i) {
@@ -315,7 +337,7 @@ void Texture_cleanup()
 
 	main_layers.clear();
 	replacements.clear();
-	knots.clear();
+	feathers.clear();
 	inner_layers.clear();
 	transitions.clear();
 	distributions.clear();

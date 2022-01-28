@@ -226,6 +226,147 @@ int Fit_tile(
 }
 
 
+
+double Get_shape_score(
+	uchar tile,
+	uchar stencil
+) {
+	double score = 0.0;
+	//double score_max = 1.0;
+	uchar product = tile & stencil;
+	for (int i = 0; i < 8; ++i) {
+		if (((1U << i) & product) > 0U) {
+			score += 1.0;
+		}
+		/*if (((1U << i) & stencil) > 0U) {
+			score_max += 1.0;
+		}*/
+	}
+	return score;// / score_max;
+}
+
+void Get_best_tile(
+	uchar shape_to,
+	uchar shape_from,
+	int& tile,
+	double& _score
+) {
+	double bestscore = -100;
+	int besttile = -1;
+	double score;
+	for (int i = 0; i < 10; ++i) {
+		switch (i) {
+		case 3:
+		case 4:
+		case 5:
+		case 6:
+		case 7:
+			continue;
+		}
+		score = Get_shape_score(shape_from, tiles_from[i]);
+		score += Get_shape_score(shape_to, tiles_to[i]);
+		score += Get_shape_score(
+			~(shape_from | shape_to),
+			~(tiles_from[i] | tiles_to[i])
+		);
+		/*score -= Get_shape_score(shape_from, tiles_to[i]) * 5.0;
+		score -= Get_shape_score(shape_to, tiles_from[i]) * 5.0;*/
+		if (score > bestscore) {
+			bestscore = score;
+			besttile = i;
+		}
+	}
+	_score = bestscore;
+	tile = besttile;
+}
+
+int Get_best_tile(
+	uchar shape_to,
+	uchar shape_from,
+	int& rotation,
+	bool& flipx,
+	bool& flipz
+) {
+	double bestscore = -100;
+	int besttile = -1;
+	double score;
+	int tile;
+
+	int r = 0;
+	bool mx = false;
+	bool mz = false;
+
+	// No transform.
+	for (int r = 0; r < 4; ++r) {
+		Get_best_tile(shape_to, shape_from, tile, score);
+		if (score > bestscore) {
+			bestscore = score;
+			besttile = tile;
+			rotation = r;
+			flipx = mx;
+			flipz = mz;
+		}
+		Shape_rotate(shape_to);
+		Shape_rotate(shape_from);
+	}
+
+	// X.
+	mx = true;
+	Shape_flip_x(shape_to);
+	Shape_flip_x(shape_from);
+	for (int r = 0; r < 4; ++r) {
+		Get_best_tile(shape_to, shape_from, tile, score);
+		if (score > bestscore) {
+			bestscore = score;
+			besttile = tile;
+			rotation = r;
+			flipx = mx;
+			flipz = mz;
+		}
+		Shape_rotate(shape_to);
+		Shape_rotate(shape_from);
+	}
+
+	// X and Z.
+	mz = true;
+	Shape_flip_z(shape_to);
+	Shape_flip_z(shape_from);
+	for (int r = 0; r < 4; ++r) {
+		Get_best_tile(shape_to, shape_from, tile, score);
+		if (score > bestscore) {
+			bestscore = score;
+			besttile = tile;
+			rotation = r;
+			flipx = mx;
+			flipz = mz;
+		}
+		Shape_rotate(shape_to);
+		Shape_rotate(shape_from);
+	}
+
+	// Z.
+	mx = false;
+	Shape_flip_x(shape_to);
+	Shape_flip_x(shape_from);
+	for (int r = 0; r < 4; ++r) {
+		Get_best_tile(shape_to, shape_from, tile, score);
+		if (score > bestscore) {
+			bestscore = score;
+			besttile = tile;
+			rotation = r;
+			flipx = mx;
+			flipz = mz;
+		}
+		Shape_rotate(shape_to);
+		Shape_rotate(shape_from);
+	}
+
+	return besttile;
+}
+
+
+
+
 uchar Get_shape(MapTile* tile, char* group)
 {
 	uchar s = 0;
@@ -263,22 +404,14 @@ void Randomize_tile(TileTexChange* t)
 	case 6:
 		if (rand() % 2) {
 			t->tile_id += 1;
-			if (t->rotation == 1 || t->rotation == 3) {
-				t->flipz = !t->flipz;
-			} else {
-				t->flipx = !t->flipx;
-			}
+			t->flipz = !t->flipz;
 		}
 		break;
 	case 5:
 	case 7:
 		if (rand() % 2) {
 			t->tile_id -= 1;
-			if (t->rotation == 1 || t->rotation == 3) {
-				t->flipz = !t->flipz;
-			} else {
-				t->flipx = !t->flipx;
-			}
+			t->flipz = !t->flipz;
 		}
 		break;
 	}
@@ -290,6 +423,7 @@ void Randomize_tile(TileTexChange* t)
 bool Fill_islands(TextureLayerTransition* transition)
 {
 	int i;
+	int iters = 0;
 	bool ok = false;
 	bool oook = true;
 
@@ -303,50 +437,105 @@ bool Fill_islands(TextureLayerTransition* transition)
 		group_other = transition->from_group;
 	}
 
+
+	// Try to expand tiles that would disappear.
+	for (int ii = 0; ii < fix_seams_iterations; ++ii)
+	for (int tz = 1; tz < mapwidth - 1; ++tz)
+	for (int tx = 1; tx < mapheight - 1; ++tx)
+	{
+		i = tz * mapwidth + tx;
+		auto* tile = &(maptiles[i]);
+
+		// Process only the matching group.
+		if (!Tile_in_group(tile, group_this)) {
+			continue;
+		}
+
+		// Count bordering sides.
+		auto countmatch = 0;
+		for (int ntz = -1; ntz <= 1; ++ntz)
+		for (int ntx = -1; ntx <= 1; ++ntx)
+		{
+			// Skip diagonals.
+			if (ntx != 0 && ntz != 0) {
+				continue;
+			}
+
+			auto tile2 = Get_tile(tile, ntx, ntz);
+
+			countmatch += Tile_in_group(tile2, group_other);
+		}
+
+		// If above threshold, change neighbour tiles.
+		if (countmatch >= fill_islands_min_neighbours) {
+			for (int ntz = -1; ntz <= 1; ++ntz)
+			for (int ntx = -1; ntx <= 1; ++ntx)
+			{
+				auto tile2 = Get_tile(tile, ntx, ntz);
+
+				if (Tile_in_group(tile2, group_other)) {
+					Set_current_texture_by_name(group_this);
+					ChangeTileTexture(tile2, Get_curtex());
+					tile2->rot = rand() % 4;
+					tile2->xflip = rand() % 2;
+					tile2->zflip = rand() % 2;
+				}
+			}
+
+			ok = false;
+		}
+	}
+
+
 	while (!ok) {
 		ok = true;
-		for (int tz = 1; tz < mapwidth - 1; ++tz) {
-			for (int tx = 1; tx < mapheight - 1; ++tx) {
-				i = tz * mapwidth + tx;
-				auto* tile = &(maptiles[i]);
 
-				if (!Tile_in_group(tile, group_this)) {
+		// Fill islands that can't be resolved nicely.
+		for (int tz = 1; tz < mapwidth - 1; ++tz)
+		for (int tx = 1; tx < mapheight - 1; ++tx)
+		{
+			i = tz * mapwidth + tx;
+			auto* tile = &(maptiles[i]);
+
+			// Process only the matching group.
+			if (!Tile_in_group(tile, group_this)) {
+				continue;
+			}
+
+			// Count bordering sides.
+			auto countmatch = 0;
+			for (int ntz = -1; ntz <= 1; ++ntz)
+			for (int ntx = -1; ntx <= 1; ++ntx) {
+				// Skip diagonals.
+				if (ntx != 0 && ntz != 0) {
 					continue;
 				}
 
-				auto countmatch = 0;
+				auto tile2 = Get_tile(tile, ntx, ntz);
 
-				for (int ntz = -1; ntz <= 1; ++ntz) {
-					for (int ntx = -1; ntx <= 1; ++ntx) {
+				countmatch += Tile_in_group(tile2, group_other);
+			}
 
-						// Skip diagonals.
-						if (ntx != 0 && ntz != 0) {
-							continue;
-						}
+			// If above threshold, change neighbour tiles.
+			if (countmatch >= fill_islands_min_neighbours) {
+				for (int ntz = -1; ntz <= 1; ++ntz)
+				for (int ntx = -1; ntx <= 1; ++ntx) {
+					auto tile2 = Get_tile(tile, ntx, ntz);
 
-						auto tile2 = Get_tile(tile, ntx, ntz);
-						/*if (!tile2) {
-							continue;
-						}*/
-
-						countmatch += Tile_in_group(tile2, group_other);
+					if (Tile_in_group(tile2, group_other)) {
+						Set_current_texture_by_name(group_this);
+						ChangeTileTexture(tile2, Get_curtex());
+						tile2->rot = rand() % 4;
+						tile2->xflip = rand() % 2;
+						tile2->zflip = rand() % 2;
 					}
 				}
 
-
-				if (countmatch >= 3) {
-					Set_current_texture_by_name(group_other);
-					ChangeTileTexture(tile, Get_curtex());
-					tile->rot = rand() % 4;
-					tile->xflip = rand() % 2;
-					tile->zflip = rand() % 2;
-
-					ok = false;
-				}
-
-			} // tiles
+				ok = false;
+			}
 		}
 
+		// Signal changes.
 		if (!ok) {
 			oook = false;
 		}
@@ -411,7 +600,7 @@ bool Match_tiles1(TextureLayerTransition* transition)
 	return oook;
 }
 
-// Fix transitions without connection to both groups to surrounding group.
+// Fix transitions without connection to both groups.
 bool Prune_transitions(TextureLayerTransition* transition)
 {
 	int i;
@@ -450,7 +639,7 @@ bool Prune_transitions(TextureLayerTransition* transition)
 			i = tz * mapwidth + tx;
 			auto* tile = &(maptiles[i]);
 			if (Tile_in_group(tile, transition->transition_group)) {
-				uchar shape_to = Get_shape(tile, transition->to_group);
+				uchar shape_to = Get_shape(tile, group_other);
 				if (shape_to == 0) {//shape_from --- ???
 					auto* change = &(changebuf[tile->z * mapwidth + tile->x]);
 					change->tile_id = rand() % 4;// tile->mt->grp->tex->len;
@@ -509,7 +698,15 @@ bool Match_tiles2(TextureLayerTransition* transition)
 					uchar shape_to = Get_shape(tile, transition->to_group);
 					uchar shape_from = Get_shape(tile, transition->from_group);
 
-					int tid = Fit_tile(
+					int tid = Get_best_tile(
+						shape_to,
+						shape_from,
+						rotation,
+						flipx,
+						flipz
+					);
+
+					/*int tid = Fit_tile(
 						shape_to,
 						shape_from,
 						true,
@@ -541,7 +738,7 @@ bool Match_tiles2(TextureLayerTransition* transition)
 							flipx,
 							flipz
 						);
-					}
+					}*/
 
 					if (tid == -1) {
 						tid = -2;
@@ -590,7 +787,7 @@ void Texture_fix_seams()
 	Texture_read_layer_files();
 	Create_change_buffer();
 
-	//printf("fix seams begin\n");
+	printf("fix seams begin\n");
 
 	while (!ok) {
 		ok = true;
@@ -600,24 +797,24 @@ void Texture_fix_seams()
 			auto* transition = &(transitions[t]);
 			ok &= Fill_islands(transition);
 		}
-		//printf("fill\n");
+		printf("fill\n");
 
 		for (int t = 0; t < transitions.len; ++t)
 		{
 			auto* transition = &(transitions[t]);
 			ok &= Match_tiles1(transition);
 		}
-		//printf("match 1\n");
+		printf("match 1\n");
 
 		for (int t = 0; t < transitions.len; ++t)
 		{
 			auto* transition = &(transitions[t]);
 			ok &= Prune_transitions(transition);
 		}
-		//printf("prune\n");	
+		printf("prune\n");	
 			
 		if (++counter >= fix_seams_iterations) {
-			//printf("fix seams max iterations reached\n");
+			printf("fix seams max iterations reached\n");
 			break;
 		}
 	}
@@ -627,9 +824,9 @@ void Texture_fix_seams()
 		auto* transition = &(transitions[t]);
 		ok &= Match_tiles2(transition);
 	}
-	//printf("match 2\n");
+	printf("match 2\n");
 
-	//printf("fix seams end\n");
+	printf("fix seams end\n");
 
 	Free_change_buffer();
 	Texture_cleanup();

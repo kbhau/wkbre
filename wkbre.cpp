@@ -29,6 +29,7 @@ void Texture_apply_main_layers();
 void Texture_replace_missing_transitions();
 void Texture_apply_inner_layers();
 void Texture_fix_seams();
+void Texture_feather_seams();
 void Distribute_objects();
 
 
@@ -76,9 +77,10 @@ MenuEntry menucmds[] = {
 {"Quit", CMD_QUIT},
 {0,0},
 {"Apply main texture layers", CMD_TEXTURING_APPLY_MAIN_LAYERS},
-{"Replace missing transitions", CMD_TEXTURING_REPLACE_MISSING_TRANSITIONS},
 {"Apply inner layers",CMD_TEXTURING_APPLY_INNER_LAYERS},
+{"Feather texture seams", CMD_TEXTURING_FEATHER_SEAMS},
 {"Fix texture seams", CMD_TEXTURING_FIX_SEAMS},
+{"Replace missing transitions", CMD_TEXTURING_REPLACE_MISSING_TRANSITIONS},
 {0,0},
 {"Create object...", CMD_CREATEOBJ},
 {"Duplicate selected objects", CMD_DUPLICATESELOBJECT},
@@ -1063,6 +1065,9 @@ void CallCommand(int cmd)
 			break;
 		case CMD_TEXTURING_FIX_SEAMS:
 			Texture_fix_seams();
+			break;
+		case CMD_TEXTURING_FEATHER_SEAMS:
+			Texture_feather_seams();
 			break;
 		case CMD_OBJECTS_DISTRIBUTE:
 			Distribute_objects();
@@ -3117,9 +3122,10 @@ void IGMainMenuBar()
 	if (ImGui::BeginMenu("Texturing"))
 	{
 		if (ImGui::MenuItem("Apply main layers")) CallCommand(CMD_TEXTURING_APPLY_MAIN_LAYERS);
-		if (ImGui::MenuItem("Replace missing transitions")) CallCommand(CMD_TEXTURING_REPLACE_MISSING_TRANSITIONS);
 		if (ImGui::MenuItem("Apply inner layers")) CallCommand(CMD_TEXTURING_APPLY_INNER_LAYERS);
+		if (ImGui::MenuItem("Feather seams")) CallCommand(CMD_TEXTURING_FEATHER_SEAMS);
 		if (ImGui::MenuItem("Fix seams")) CallCommand(CMD_TEXTURING_FIX_SEAMS);
+		if (ImGui::MenuItem("Replace missing transitions")) CallCommand(CMD_TEXTURING_REPLACE_MISSING_TRANSITIONS);
 		ImGui::EndMenu();
 	}
 	if(ImGui::BeginMenu("Object"))
