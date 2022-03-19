@@ -15,7 +15,27 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#include "FastNoiseLite.h"
 #include "auto_texturing.h"
+
+
+double SampleNoise(int x, int z)
+{
+	auto n = new FastNoiseLite(1349);
+
+	n->SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+	n->SetFrequency(0.015);
+	n->SetFractalType(FastNoiseLite::FractalType_FBm);
+	n->SetFractalOctaves(5);
+	n->SetFractalLacunarity(2.2);
+	n->SetFractalGain(0.5);
+	n->SetFractalWeightedStrength(0.6);
+
+	auto res = n->GetNoise((double)x, (double)z);
+	delete n;
+
+	return res;
+}
 
 
 

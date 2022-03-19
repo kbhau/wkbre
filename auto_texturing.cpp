@@ -18,6 +18,9 @@
 #include "auto_texturing.h"
 
 
+// ----------------------------------------------------------------------------
+// VARS
+// ----------------------------------------------------------------------------
 
 GrowList<TextureLayerMain> main_layers;
 GrowList<TextureLayerIntermediate> replacements;
@@ -26,9 +29,10 @@ GrowList<TextureLayerTransition> transitions;
 GrowList<TextureLayerFeathering> feathers;
 GrowList<ObjectDistribution> distributions;
 
-int replacement_iterations = 100;
-int fix_seams_iterations = 100;
+int replacement_iterations = 1;
+int fix_seams_iterations = 1;
 int fill_islands_min_neighbours = 3;
+int fix_seams_by_edges_iterations = 4;
 
 float sqrt2 = sqrt(2);
 
@@ -38,6 +42,10 @@ TileTexChange* changebuf;
 float tileedgelen = 5;
 
 
+
+// ----------------------------------------------------------------------------
+// ENUMS
+// ----------------------------------------------------------------------------
 
 enum Tlf_mode_enum {
 	VARS = 0,
@@ -52,6 +60,10 @@ enum Tlf_mode_enum {
 };
 
 
+
+// ----------------------------------------------------------------------------
+// FUNCS
+// ----------------------------------------------------------------------------
 
 void Texture_read_layer_files()
 {
@@ -379,7 +391,7 @@ void Set_current_texture_by_name(const char* name)
 	//printf("Set_current_texture_by_name notex\n");
 }
 
-bool Tile_in_group(MapTile* tile, const char* group_name)
+bool Tile_in_group(const MapTile* tile, const char* group_name)
 {
 	//try {
 	//	printf(tile->mt->grp->name);
@@ -454,3 +466,21 @@ void Apply_change_buffer(char* tex_grp, char* alt)
 	}
 }
 
+
+
+// ----------------------------------------------------------------------------
+// TODO
+// ----------------------------------------------------------------------------
+
+/*
+
+x feather edges - iterations control per line
+
+- fix seams - edges pass
+	- split cpp
+
+- fix seams - better iteration control
+- noise samplers
+- object distribution noise sampled probability
+
+*/ 

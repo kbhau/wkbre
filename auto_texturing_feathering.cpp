@@ -113,7 +113,14 @@ void Texture_feather_seams()
 					continue;
 				}
 
-				changebuf[ti].tile_id = rand() % tex_to->tex->len;
+				auto* change = &changebuf[ti];// = rand() % tex_to->tex->len;
+				change->tile_id = rand() % tex_to->tex->len;
+				/*change->flipx = rand() % 2;
+				change->flipz = false;
+				change->rotation = rand() % 4;*/
+				change->flipx = false;// rand() % 2;
+				change->flipz = false;
+				change->rotation = 0;// rand() % 4;
 			}
 
 			Apply_change_buffer(feather->to);

@@ -106,6 +106,7 @@ extern GrowList<ObjectDistribution> distributions;
 
 extern int replacement_iterations;
 extern int fix_seams_iterations;
+extern int fix_seams_by_edges_iterations;
 extern int fill_islands_min_neighbours;
 extern float sun_factor;
 
@@ -145,35 +146,35 @@ inline MapTile* Get_tile(MapTile* from, int x, int z)
 	}
 	return &(maptiles[zz * mapwidth + xx]);
 }
-inline MapTile* Get_N_tile(MapTile* from)
+inline MapTile* Get_N_tile(const MapTile* from)
 {
 	return &(maptiles[(from->z - 1) * mapwidth + from->x]);
 }
-inline MapTile* Get_NE_tile(MapTile* from)
+inline MapTile* Get_NE_tile(const MapTile* from)
 {
 	return &(maptiles[(from->z - 1) * mapwidth + from->x + 1]);
 }
-inline MapTile* Get_E_tile(MapTile* from)
+inline MapTile* Get_E_tile(const MapTile* from)
 {
 	return &(maptiles[from->z * mapwidth + from->x + 1]);
 }
-inline MapTile* Get_SE_tile(MapTile* from)
+inline MapTile* Get_SE_tile(const MapTile* from)
 {
 	return &(maptiles[(from->z + 1) * mapwidth + from->x + 1]);
 }
-inline MapTile* Get_S_tile(MapTile* from)
+inline MapTile* Get_S_tile(const MapTile* from)
 {
 	return &(maptiles[(from->z + 1) * mapwidth + from->x]);
 }
-inline MapTile* Get_SW_tile(MapTile* from)
+inline MapTile* Get_SW_tile(const MapTile* from)
 {
 	return &(maptiles[(from->z + 1) * mapwidth + from->x - 1]);
 }
-inline MapTile* Get_W_tile(MapTile* from)
+inline MapTile* Get_W_tile(const MapTile* from)
 {
 	return &(maptiles[from->z * mapwidth + from->x - 1]);
 }
-inline MapTile* Get_NW_tile(MapTile* from)
+inline MapTile* Get_NW_tile(const MapTile* from)
 {
 	return &(maptiles[(from->z - 1) * mapwidth + from->x - 1]);
 }
@@ -181,7 +182,7 @@ inline MapTile* Get_NW_tile(MapTile* from)
 MapTextureGroup* Get_texture_group(const char* name);
 MapTexture* Get_texture(const char* group_name, int id);
 void Set_current_texture_by_name(const char* name);
-bool Tile_in_group(MapTile* tile, const char* group_name);
+bool Tile_in_group(const MapTile* tile, const char* group_name);
 
 
 
@@ -193,5 +194,62 @@ void Free_change_buffer();
 void Apply_change_buffer(char* tex_grp, char* alt = nullptr);
 
 
+
+// ----------------------------------------------------------------------------
+// Seams.
+// ----------------------------------------------------------------------------
+
+// Helpers.
+inline void Shape_flip_x(uchar& s)
+{
+	s = (s & 0b10001000)
+		| ((s & 0b01000000) >> 6) | ((s & 0b00000001) << 6)
+		| ((s & 0b00100000) >> 4) | ((s & 0b00000010) << 4)
+		| ((s & 0b00010000) >> 2) | ((s & 0b00000100) << 2);
+}
+inline void Shape_flip_z(uchar& s)
+{
+	s = (s & 0b00100010)
+		| ((s & 0b10000000) >> 4) | ((s & 0b00001000) << 4)
+		| ((s & 0b01000000) >> 2) | ((s & 0b00010000) << 2)
+		| ((s & 0b00000100) >> 2) | ((s & 0b00000001) << 2);
+}
+inline void Shape_rotate(uchar& s)
+{
+	// this is wrong side, should rotate counter clockwise as it's the shape around the tile, not the tile
+	//s = ((s & 0b11111100) >> 2) | ((s & 0b00000011) << 6);
+	s = ((s & 0b11000000) >> 6) | ((s & 0b00111111) << 2);
+}
+
+// Place transition group.
+void Explode_islands(TextureLayerTransition* transition);
+void Explode_peninsulas(TextureLayerTransition* transition);
+bool Fill_islands(TextureLayerTransition* transition);
+bool Place_transitions(TextureLayerTransition* transition);
+bool Prune_transitions(TextureLayerTransition* transition);
+
+// Fit by tile type.
+int Fit_tile_precise(uchar shape, uchar* shapes);
+int Fit_tile_precise(uchar shape_to, uchar shape_from);
+int Fit_tile_precise(uchar shape_to, uchar shape_from,
+	bool match_from, int& rotation);
+int Fit_tile(uchar shape, uchar* shapes);
+int Fit_tile(uchar shape_to, uchar shape_from);
+int Fit_tile(uchar shape_to, uchar shape_from,
+	bool match_from, int& rotation);
+int Fit_tile(uchar shape_to, uchar shape_from, bool match_from, bool precise,
+	int& rotation, bool& flipx, bool& flipz);
+double Get_shape_score(uchar tile, uchar stencil);
+void Get_best_tile(uchar shape_to, uchar shape_from,
+	int& tile, double& _score);
+int Get_best_tile(uchar shape_to, uchar shape_from,
+	int& rotation, bool& flipx, bool& flipz);
+
+uchar Get_shape(MapTile* tile, char* group);
+void Randomize_tile(TileTexChange* t);
+bool Match_tiles_by_tile_type(TextureLayerTransition* transition);
+
+// Fit by edges.
+bool Match_tiles_by_edges(TextureLayerTransition* transition);
 
 #endif

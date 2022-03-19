@@ -31,6 +31,7 @@ void Texture_apply_inner_layers();
 void Texture_fix_seams();
 void Texture_feather_seams();
 void Distribute_objects();
+void Debug_tile(MapTile* tile);
 
 
 HINSTANCE hInstance;
@@ -1740,6 +1741,7 @@ void T7RightClick(void *param)
 				int x = mapstdownpos.x / 5 + mapedge, z = mapheight - (mapstdownpos.z / 5 + mapedge);
 				//printf("x=%i  z=%i\n", x, z);
 				MapTile *mt = &(maptiles[z * mapwidth + x]);
+				Debug_tile(mt);
 				//printf("texgrp=%s  tex=%i\n", mt->mt->grp->name, mt->mt->id);
 				curtexgrp = mt->mt->grp;
 				curtex = mt->mt;
@@ -3486,11 +3488,12 @@ void Test7()
 		}
 
 		// TODO: Key binding settings, because "WASD" keys can conflict with other keys on several layouts.
-		//int wasd_up =    MapVirtualKey(0x11, MAPVK_VSC_TO_VK);
-		//int wasd_left =  MapVirtualKey(0x1e, MAPVK_VSC_TO_VK);
-		//int wasd_down =  MapVirtualKey(0x1f, MAPVK_VSC_TO_VK);
-		//int wasd_right = MapVirtualKey(0x20, MAPVK_VSC_TO_VK);
-		int wasd_up = VK_UP, wasd_left = VK_LEFT, wasd_down = VK_DOWN, wasd_right = VK_RIGHT;
+		int wasd_up =    MapVirtualKey(0x11, MAPVK_VSC_TO_VK);
+		int wasd_left =  MapVirtualKey(0x1e, MAPVK_VSC_TO_VK);
+		int wasd_down =  MapVirtualKey(0x1f, MAPVK_VSC_TO_VK);
+		int wasd_right = MapVirtualKey(0x20, MAPVK_VSC_TO_VK);
+		//int wasd_up = VK_UP, wasd_left = VK_LEFT, wasd_down = VK_DOWN, wasd_right = VK_RIGHT;
+		//int wasd_up = VK_UP, wasd_left = VK_LEFT, wasd_down = VK_DOWN, wasd_right = VK_RIGHT;
 
 		if(keyheld[VK_SHIFT]) {walkstep = objmovalign ? 5.0f : 4.0f; camwalkstep = 4.0f;}
 		else {walkstep = objmovalign ? 2.5f : 1.0f; camwalkstep = 1.0f;}
@@ -3516,7 +3519,7 @@ void Test7()
 			MoveKeyPress(m);
 		}
 		if(keyheld['E']) DisplaceCurCamera(Vector3(0.0f,  camwalkstep, 0.0f));
-		if(keyheld['D']) DisplaceCurCamera(Vector3(0.0f, -camwalkstep, 0.0f));
+		if(keyheld['Q']) DisplaceCurCamera(Vector3(0.0f, -camwalkstep, 0.0f));
 		if(keyheld['T']) RotateCurCamera( 0.01f, 0);
 		if(keyheld['G']) RotateCurCamera(-0.01f, 0);
 		if(keyheld['U']) RotateCurCamera(0,  0.01f);
@@ -3651,22 +3654,22 @@ void Test7()
 		if(keypressed[VK_ADD]) CallCommand(CMD_GAME_SPEED_FASTER);
 		if(keypressed[VK_SUBTRACT]) CallCommand(CMD_GAME_SPEED_SLOWER);
 
-		if(keypressed['A']) CallCommand(CMD_EXECUTE_COMMAND);
+		//if(keypressed['A']) CallCommand(CMD_EXECUTE_COMMAND);
 		if(keypressed['Y']) CallCommand(CMD_EXECUTE_COMMAND_WITH_TARGET);
 		if(keypressed['X']) CallCommand(CMD_RUNACTSEQ);
-		if(keypressed['S'])
+		/*if(keypressed['S'])
 		{
 			if (keypressed[VK_CONTROL])
 				CallCommand(CMD_START_LEVEL);
 			else
 				GiveNotification("Press CTRL+S to start the level.");
-		}
+		}*/
 		if(keypressed['F']) CallCommand(CMD_CONTROL_CLIENT);
 		if(keypressed['J']) CallCommand(CMD_SEND_EVENT);
 
 #ifndef WKBRE_RELEASE
-		if (keypressed['W'])
-			swTest = !swTest;
+		/*if (keypressed['W'])
+			swTest = !swTest;*/
 #endif
 	}
 }

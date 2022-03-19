@@ -71,9 +71,12 @@ void Texture_apply_main_layers()
 					auto* mt = &(maptiles[tz * mapwidth + tx]);
 					Set_current_texture_by_name(layer.group_name);
 					ChangeTileTexture(mt, Get_curtex());
-					mt->rot = rand() % 4;
+					/*mt->rot = rand() % 4;
 					mt->xflip = rand() % 2;
-					mt->zflip = rand() % 2;
+					mt->zflip = rand() % 2;*/
+					mt->rot = 0;// rand() % 4;
+					mt->xflip = false;// rand() % 2;
+					mt->zflip = false;// rand() % 2;
 				}
 			}
 		}
