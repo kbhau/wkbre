@@ -426,18 +426,18 @@ bool Match_tiles_by_tile_type(TextureLayerTransition* transition)
 					change->rotation = rotation;
 					change->flipx = flipx;
 					change->flipz = flipz;
-					Randomize_tile(change);
+					//Randomize_tile(change);
 				} // tile in group
 			}
 		}
 
-		if (strcmp(transition->transition_group, "ROCKYGRASS2-D_EARTH1") == 0) {
+		/*if (strcmp(transition->transition_group, "ROCKYGRASS2-D_EARTH1") == 0) {
 			for (int i = 0; i < bufsize; ++i) {
 				if (changebuf[i].tile_id == 2) {
 					changebuf[i].tile_id = 9;
 				}
 			}
-		}
+		}*/
 		Apply_change_buffer(transition->transition_group, transition->from_group);
 
 		if (!ok) {

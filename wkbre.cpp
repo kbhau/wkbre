@@ -29,6 +29,8 @@ void Texture_apply_main_layers();
 void Texture_replace_missing_transitions();
 void Texture_apply_inner_layers();
 void Texture_fix_seams();
+void Texture_fix_seams_both();
+void Texture_fix_seams_old();
 void Texture_feather_seams();
 void Distribute_objects();
 void Debug_tile(MapTile* tile);
@@ -80,7 +82,9 @@ MenuEntry menucmds[] = {
 {"Apply main texture layers", CMD_TEXTURING_APPLY_MAIN_LAYERS},
 {"Apply inner layers",CMD_TEXTURING_APPLY_INNER_LAYERS},
 {"Feather texture seams", CMD_TEXTURING_FEATHER_SEAMS},
-{"Fix texture seams", CMD_TEXTURING_FIX_SEAMS},
+{"Fix texture seams using edges", CMD_TEXTURING_FIX_SEAMS},
+{"Fix texture seams using tile type", CMD_TEXTURING_FIX_SEAMS_OLD},
+{"Fix texture seams using tile type and edges", CMD_TEXTURING_FIX_SEAMS_BOTH},
 {"Replace missing transitions", CMD_TEXTURING_REPLACE_MISSING_TRANSITIONS},
 {0,0},
 {"Create object...", CMD_CREATEOBJ},
@@ -1066,6 +1070,12 @@ void CallCommand(int cmd)
 			break;
 		case CMD_TEXTURING_FIX_SEAMS:
 			Texture_fix_seams();
+			break;
+		case CMD_TEXTURING_FIX_SEAMS_OLD:
+			Texture_fix_seams_old();
+			break;
+		case CMD_TEXTURING_FIX_SEAMS_BOTH:
+			Texture_fix_seams_both();
 			break;
 		case CMD_TEXTURING_FEATHER_SEAMS:
 			Texture_feather_seams();
@@ -3126,7 +3136,9 @@ void IGMainMenuBar()
 		if (ImGui::MenuItem("Apply main layers")) CallCommand(CMD_TEXTURING_APPLY_MAIN_LAYERS);
 		if (ImGui::MenuItem("Apply inner layers")) CallCommand(CMD_TEXTURING_APPLY_INNER_LAYERS);
 		if (ImGui::MenuItem("Feather seams")) CallCommand(CMD_TEXTURING_FEATHER_SEAMS);
-		if (ImGui::MenuItem("Fix seams")) CallCommand(CMD_TEXTURING_FIX_SEAMS);
+		if (ImGui::MenuItem("Fix seams using edges")) CallCommand(CMD_TEXTURING_FIX_SEAMS);
+		if (ImGui::MenuItem("Fix seams using tile type")) CallCommand(CMD_TEXTURING_FIX_SEAMS_OLD);
+		if (ImGui::MenuItem("Fix seams using tile type and edges")) CallCommand(CMD_TEXTURING_FIX_SEAMS_BOTH);
 		if (ImGui::MenuItem("Replace missing transitions")) CallCommand(CMD_TEXTURING_REPLACE_MISSING_TRANSITIONS);
 		ImGui::EndMenu();
 	}

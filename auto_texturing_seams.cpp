@@ -17,8 +17,31 @@
 #include "auto_texturing.h"
 
 
-
+// New seam fixer.
 void Texture_fix_seams()
+{
+	Texture_read_layer_files();
+	Create_change_buffer();
+
+
+	for (int t = 0; t < transitions.len; ++t) {
+		auto* transition = &(transitions[t]);
+
+		Explode_islands(transition);
+		Explode_peninsulas(transition);
+		Fill_islands(transition);
+		Place_transitions(transition);
+		Match_tiles_by_edges(transition);
+	}
+
+
+	Free_change_buffer();
+	Texture_cleanup();
+}
+
+
+// Uses both algos to fix seams.
+void Texture_fix_seams_both()
 {
 	Texture_read_layer_files();
 	Create_change_buffer();
@@ -33,6 +56,10 @@ void Texture_fix_seams()
 		Place_transitions(transition);
 		//Prune_transitions(transition);
 
+		// First pass with old algo.
+		Match_tiles_by_tile_type(transition);
+
+		// Second pass with new algo.
 		Match_tiles_by_edges(transition);
 	}
 
@@ -42,9 +69,8 @@ void Texture_fix_seams()
 }
 
 
-
-// Use after finishing all main layers to place texture transistions.
-void Texture_fix_seams_()
+// Uses old algo. Achieves seamlessness, but makes feathering impossible.
+void Texture_fix_seams_old()
 {
 	int i;
 	bool ok = false;

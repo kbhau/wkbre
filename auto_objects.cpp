@@ -19,22 +19,45 @@
 #include "auto_texturing.h"
 
 
-double SampleNoise(int x, int z)
+auto Get_noise(char* noise_name)
 {
-	auto n = new FastNoiseLite(1349);
+	ObjectDistributionNoise* pars = nullptr;
+	for (int i = 0; i < noises.len; ++i) {
+		if (strcmp(noises[i].noise_name, noise_name) == 0) {
+			pars = &noises[i];
+			break;
+		}
+	}
+	if (!pars) {
+		printf("Could not find noise [%s]", noise_name);
+		auto np = std::unique_ptr<FastNoiseLite>();
+		np = nullptr;
+		return np;
+	}
+
+	auto n = std::make_unique<FastNoiseLite>(pars->seed);
 
 	n->SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-	n->SetFrequency(0.015);
 	n->SetFractalType(FastNoiseLite::FractalType_FBm);
-	n->SetFractalOctaves(5);
-	n->SetFractalLacunarity(2.2);
-	n->SetFractalGain(0.5);
-	n->SetFractalWeightedStrength(0.6);
+	n->SetFrequency(pars->frequency);
+	n->SetFractalOctaves(pars->octaves);
+	n->SetFractalLacunarity(pars->lacunarity);
+	n->SetFractalGain(pars->gain);
+	n->SetFractalWeightedStrength(pars->weighted_strength);
 
-	auto res = n->GetNoise((double)x, (double)z);
-	delete n;
+	return n;
+}
 
-	return res;
+
+double Get_probability(
+	FastNoiseLite* noise,
+	float probability_min,
+	float probability_max,
+	int x,
+	int z
+) {
+	auto res = noise->GetNoise((double)x, (double)z);
+	return res * (probability_max - probability_min) + probability_min;
 }
 
 
@@ -106,12 +129,13 @@ void Distribute_objects()
 
 	// Find parent object.
 	GameObject* neutral_player = nullptr;
-	for (DynListEntry<GameObject>* e = levelobj->children.first; e; e = e->next)
-	if (e->value.objdef->type == CLASS_PLAYER
-		&& wcscmp(e->value.name, L"Neutral Player") == 0)
-	{
-		neutral_player = &e->value;
-		break;
+	for (DynListEntry<GameObject>* e = levelobj->children.first; e; e = e->next) {
+		if (e->value.objdef->type == CLASS_PLAYER
+			&& wcscmp(e->value.name, L"Neutral Player") == 0)
+		{
+			neutral_player = &e->value;
+			break;
+		}
 	}
 	if (neutral_player == nullptr) {
 		printf("Distribute Object: Could not find neutral player!\n");
@@ -121,6 +145,10 @@ void Distribute_objects()
 	// Loop through distributions.
 	for (int di = 0; di < distributions.len; ++di) {
 		d = &distributions[di];
+		auto n = Get_noise(d->noise_name);
+		if (!n) {
+			continue;
+		}
 
 		// Find object definition.
 		CObjectDefinition* def = nullptr;
@@ -157,9 +185,21 @@ void Distribute_objects()
 			auto* tile = &(maptiles[tile_i]);
 			float prob = 0.f;
 			if (Tile_in_group(tile, d->tile_group)) {
-				prob = d->probability;
+				prob = Get_probability(
+					n.get(),
+					d->probability_min,
+					d->probability_max,
+					tx,
+					tz
+				);
 			} else if (Tile_in_transition_group(tile, d->tile_group)) {
-				prob = d->probability / 2.f;
+				prob = Get_probability(
+					n.get(),
+					d->probability_min / 2.f,
+					d->probability_max / 2.f,
+					tx,
+					tz
+				);
 			} else {
 				continue;
 			}

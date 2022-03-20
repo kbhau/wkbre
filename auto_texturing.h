@@ -78,12 +78,25 @@ struct ObjectDistribution
 {
 	char* tile_group;
 	char* object_name;
-	float probability;
+	char* noise_name;
+	float probability_min;
+	float probability_max;
 	float border_distance;
 	int height_min;
 	int height_max;
 	int slope_min;
 	int slope_max;
+};
+
+struct ObjectDistributionNoise
+{
+	char* noise_name;
+	float frequency;
+	float gain;
+	float lacunarity;
+	float weighted_strength;
+	int octaves;
+	int seed;
 };
 
 struct TileTexChange
@@ -103,6 +116,7 @@ extern GrowList<TextureLayerFeathering> feathers;
 extern GrowList<TextureLayerInner> inner_layers;
 extern GrowList<TextureLayerTransition> transitions;
 extern GrowList<ObjectDistribution> distributions;
+extern GrowList<ObjectDistributionNoise> noises;
 
 extern int replacement_iterations;
 extern int fix_seams_iterations;

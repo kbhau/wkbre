@@ -129,19 +129,13 @@ void Tile_edge_shape::Rotate()
 
 void Tile_edge_shape::Flip_x()
 {
-	// X and Z seem swapped in editor tiles, swap n and s;
+	// Flip around X axis, which means swap n and s.
 
 	auto tmp = sn;
 	sn = Mirror_edge(ss);
 	ss = Mirror_edge(tmp);
 	se = Mirror_edge(se);
 	sw = Mirror_edge(sw);
-
-	//sn = Mirror_edge(sn);
-	//ss = Mirror_edge(ss);
-	//auto tmp = se;
-	//se = Mirror_edge(sw);
-	//sw = Mirror_edge(tmp);
 
 	flip_x = !flip_x;
 }
@@ -208,13 +202,17 @@ void Tile_edge_shape::Get_edges(
 int Tile_edge_shape::Get_edge_score(int me, int neighbour)
 {
 	// Scoring allows us priorities.
-	// 1111 or 0000 - 500
-	// other full edge - 100
-	// single bits - 15
+	// - Full tiles
+	// - Full edges
+	// - Matching edges
+	// - Matching single bits
 
 	auto bullseye = 100;
 	auto single = 1;
 	if ((neighbour & 240) == 240) {
+		bullseye = 1000;
+		single = 6;
+	} else if ((neighbour & 15) == 15 || (neighbour & 15) == 0) {
 		bullseye = 500;
 		single = 3;
 	}
@@ -255,11 +253,16 @@ TileTexChange Tile_edge_shape::Get_tex_change()
 	// ASSUMPTION: Neighbour edges are already set.
 
 	// Only check base and x flip. Other combinations are redundant.
+	bdir = 0;
+	bid = -1;
+	bx = false;
+	bscore = -1;
 	for (tile_id = 0; tile_id < 10; ++tile_id) {
 		sn = edges[tile_id].e[0];
 		se = edges[tile_id].e[1];
 		ss = edges[tile_id].e[2];
 		sw = edges[tile_id].e[3];
+		dir = 0;
 		for (int i = 0; i < 4; ++i) {
 			Get_score();
 			Rotate();
@@ -271,14 +274,21 @@ TileTexChange Tile_edge_shape::Get_tex_change()
 		}
 	}
 
-	/*if (bx && bid == 1) {
-		printf("Flip X, tile=[%d] score=[%d]\n", bid, bscore);
-		if (bscore == 1200) {
-			bid = 8;
-		}
-	}*/
+	TileTexChange tc;
+	tc.tile_id = bid;
+	tc.rotation = bdir;
+	tc.flipx = bx;
+	tc.flipz = false;
 
-	return TileTexChange{ bid, bdir, bx, false };
+	// Without this, corner tiles are misaligned. If you happen to solve the
+	// mystery why, contact me. Unless you're not gonna tell me, in which case
+	// don't.
+	if (tc.flipx && (tc.tile_id == 1 || tc.tile_id == 3 || tc.tile_id == 9)) {
+		tc.rotation += 1;
+		tc.rotation %= 4;
+	}
+
+	return tc;
 }
 
 
@@ -286,17 +296,6 @@ TileTexChange Tile_edge_shape::Get_tex_change()
 bool Match_tiles_by_edges(TextureLayerTransition* transition)
 {
 	auto ok = false;
-
-	/*for (int tz = 1; tz < mapwidth - 1; ++tz)
-	for (int tx = 1; tx < mapheight - 1; ++tx)
-	{
-		auto i = tz * mapwidth + tx;
-		auto* tile = &(maptiles[i]);
-		if (tile->rot < 0 || tile->rot > 3) {
-			printf("error at [%d,%d,%d,%d,%d,%d,%d]\n", tx, tz, tile->rot, tile->xflip, tile->zflip, tile->mt->tfid, tile->mt->id);
-			continue;
-		}
-	}*/
 
 	for (int iter = 0; iter < fix_seams_by_edges_iterations * 4; ++iter) {
 
@@ -317,7 +316,7 @@ bool Match_tiles_by_edges(TextureLayerTransition* transition)
 			shape->Get_edges(tile, transition);
 			auto change = shape->Get_tex_change();
 			// TODO: list misfits and change randomly to solid tiles
-			//Randomize_tile(&change);
+			Randomize_tile(&change);
 			changebuf[tile->z * mapwidth + tile->x] = change;
 
 			delete shape;
@@ -370,15 +369,16 @@ void Tile_edge_shape::Read_tile(const MapTile* tile)
 
 void Debug_tile(MapTile* tile)
 {
+	return;
 	Texture_read_layer_files();
 
 	printf("Debug tile.\n");
 	for (int i = 0; i < transitions.len; ++i) {
 		auto transition = &transitions[i];
-		printf(transition->transition_group);
+		/*printf(transition->transition_group);
 		printf(",");
 		printf(tile->mt->grp->name);
-		printf("\n");
+		printf("\n");*/
 		if (!Tile_in_group(tile, transition->transition_group)) {
 			continue;
 		}

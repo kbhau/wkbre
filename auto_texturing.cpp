@@ -56,6 +56,7 @@ enum Tlf_mode_enum {
 	INNERS,
 	TRANSITIONS,
 	REPLACEMENTS,
+	NOISES,
 	DISTRIBUTIONS
 };
 
@@ -134,6 +135,8 @@ void Texture_read_layer_files()
 				mode = TRANSITIONS;
 			} else if (strcmp(line, "!REPLACEMENTS\n") == 0) {
 				mode = REPLACEMENTS;
+			} else if (strcmp(line, "!NOISES\n") == 0) {
+				mode = NOISES;
 			} else if (strcmp(line, "!DISTRIBUTIONS\n") == 0) {
 				mode = DISTRIBUTIONS;
 			} else {
@@ -255,11 +258,34 @@ void Texture_read_layer_files()
 			continue;
 		}
 
+		// Read noises.
+		if (mode == NOISES) {
+			char* noise_name = (char*)malloc(sizeof(char) * namelen); strcpy(noise_name, strtok(line, ","));
+			int seed = getval(strtok(nullptr, ","));
+			float frequency = getvalf(strtok(nullptr, ","));
+			int octaves = getval(strtok(nullptr, ","));
+			float lacunarity = getvalf(strtok(nullptr, ","));
+			float gain = getvalf(strtok(nullptr, ","));
+			float weighted_strength = getvalf(strtok(nullptr, "\n"));
+			noises.add(ObjectDistributionNoise{
+				noise_name,
+				frequency,
+				gain,
+				lacunarity,
+				weighted_strength,
+				octaves,
+				seed
+			});
+			continue;
+		}
+
 		// Read distributions.
 		if (mode == DISTRIBUTIONS) {
 			char* tile_grp = (char*)malloc(sizeof(char) * namelen); strcpy(tile_grp, strtok(line, ","));
 			char* obj_name = (char*)malloc(sizeof(char) * namelen); strcpy(obj_name, strtok(nullptr, ","));
-			float prob = getvalf(strtok(nullptr, ","));
+			float prob_min = getvalf(strtok(nullptr, ","));
+			float prob_max = getvalf(strtok(nullptr, ","));
+			char* noise_name = (char*)malloc(sizeof(char) * namelen); strcpy(noise_name, strtok(nullptr, ","));
 			float border = getvalf(strtok(nullptr, ","));
 			int height_min = getval(strtok(nullptr, ","));
 			int height_max = getval(strtok(nullptr, ","));
@@ -268,13 +294,15 @@ void Texture_read_layer_files()
 			distributions.add(ObjectDistribution{
 				tile_grp,
 				obj_name,
-				prob,
+				noise_name,
+				prob_min,
+				prob_max,
 				border,
 				height_min,
 				height_max,
 				slope_min,
 				slope_max
-			});
+				});
 			continue;
 		}
 	}
@@ -342,9 +370,14 @@ void Texture_cleanup()
 		free(transitions[i].transition_group);
 	}
 
+	for (int i = 0; i < noises.len; ++i) {
+		free(noises[i].noise_name);
+	}
+
 	for (int i = 0; i < distributions.len; ++i) {
 		free(distributions[i].tile_group);
 		free(distributions[i].object_name);
+		free(distributions[i].noise_name);
 	}
 
 	main_layers.clear();
@@ -352,6 +385,7 @@ void Texture_cleanup()
 	feathers.clear();
 	inner_layers.clear();
 	transitions.clear();
+	noises.clear();
 	distributions.clear();
 }
 

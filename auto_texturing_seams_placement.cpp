@@ -21,14 +21,16 @@
 // Alternatively fills in the tile.
 void Explode_islands(TextureLayerTransition* transition)
 {
-
+	// TODO.
+	// Note: adds need to check for transition tiles in other functinos.
 }
 
 
 // Adds transition tiles around tiles surrounded from 3 sides.
 void Explode_peninsulas(TextureLayerTransition* transition)
 {
-
+	// TODO.
+	// Note: adds need to check for transition tiles in other functinos.
 }
 
 
