@@ -209,11 +209,13 @@ bool Tile_in_group(const MapTile* tile, const char* group_name);
 
 extern int bufsize;
 extern TileTexChange* changebuf;
+extern bool* occbuf;
 
 void Create_change_buffer();
 void Free_change_buffer();
 void Apply_change_buffer(char* tex_grp, char* alt = nullptr);
-
+void Create_occupation_buffer();
+void Free_occupation_buffer();
 
 
 // ----------------------------------------------------------------------------

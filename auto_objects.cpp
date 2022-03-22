@@ -134,6 +134,7 @@ void Distribute_objects(bool pre_clean)
 {
 	// Reads the config file.
 	Texture_read_layer_files();
+	Create_occupation_buffer();
 
 	// Pre-clean.
 	if (pre_clean) {
@@ -197,8 +198,14 @@ void Distribute_objects(bool pre_clean)
 		for (int tz = mapedge; tz < mapwidth - 1 - mapedge; ++tz)
 		for (int tx = mapedge; tx < mapheight - 1 - mapedge; ++tx)
 		{
-			// Check tle group and set probability.
 			tile_i = tz * mapwidth + tx;
+
+			// Skip if tile occupied.
+			if (occbuf[tile_i]) {
+				continue;
+			}
+
+			// Check tile group and set probability.
 			auto* tile = &(maptiles[tile_i]);
 			float prob = 0.f;
 			if (Tile_in_group(tile, d->tile_group)) {
@@ -255,10 +262,14 @@ void Distribute_objects(bool pre_clean)
 				o->position.z *= tileedge;
 				o->position.y = GetHeight(o->position.x, o->position.z);
 				o->orientation = Vector3(0, double(rand() % 360) / 57.295779513, 0);
+
+				// Mark tile as occupied.
+				occbuf[tile_i] = true;
 			}
 		}
 	} // distributions
 
 	// Cleans the config memory.
+	Free_occupation_buffer();
 	Texture_cleanup();
 }

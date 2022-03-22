@@ -36,6 +36,7 @@ float sqrt2 = sqrt(2);
 
 int bufsize = 0;
 TileTexChange* changebuf;
+bool* occbuf;
 
 float tileedgelen = 5;
 
@@ -559,6 +560,19 @@ void Apply_change_buffer(char* tex_grp, char* alt)
 	}
 }
 
+
+void Create_occupation_buffer()
+{
+	occbuf = (bool*)malloc(sizeof(bool) * bufsize);
+	for (int i = 0; i < bufsize; ++i) {
+		occbuf[i] = false;
+	}
+}
+
+void Free_occupation_buffer()
+{
+	free(occbuf);
+}
 
 
 // ----------------------------------------------------------------------------
