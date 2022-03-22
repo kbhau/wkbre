@@ -79,8 +79,6 @@ void Texture_fix_seams_old()
 	Texture_read_layer_files();
 	Create_change_buffer();
 
-	printf("fix seams begin\n");
-
 	while (!ok) {
 		ok = true;
 
@@ -89,24 +87,20 @@ void Texture_fix_seams_old()
 			auto* transition = &(transitions[t]);
 			ok &= Fill_islands(transition);
 		}
-		printf("fill\n");
 
 		for (int t = 0; t < transitions.len; ++t)
 		{
 			auto* transition = &(transitions[t]);
 			ok &= Place_transitions(transition);
 		}
-		printf("match 1\n");
 
 		for (int t = 0; t < transitions.len; ++t)
 		{
 			auto* transition = &(transitions[t]);
 			ok &= Prune_transitions(transition);
 		}
-		printf("prune\n");	
 			
 		if (++counter >= fix_seams_iterations) {
-			printf("fix seams max iterations reached\n");
 			break;
 		}
 	}
@@ -116,9 +110,6 @@ void Texture_fix_seams_old()
 		auto* transition = &(transitions[t]);
 		ok &= Match_tiles_by_tile_type(transition);
 	}
-	printf("match 2\n");
-
-	printf("fix seams end\n");
 
 	Free_change_buffer();
 	Texture_cleanup();

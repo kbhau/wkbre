@@ -17,117 +17,98 @@
 #include "auto_texturing.h"
 
 
-
-// Use first to apply base texture layers.
-void Texture_feather_seams()
+void Feather_seams(TextureLayerFeathering& layer)
 {
-	Texture_read_layer_files();
-	Create_change_buffer();
-
 	int ti;
 	bool tile_ok;
-	
-	// Loop over all layers - loop over already visited tiles to allow overwriting.
-	for (int fi = 0; fi < feathers.len; ++fi) {
-		auto* feather = &feathers[fi];
-		auto* tex_to = Get_texture_group(feather->to);
 
-		for (int i = 0; i < feather->iterations; ++i) {
-			for (int tz = 0; tz < mapwidth; ++tz)
-			for (int tx = 0; tx < mapheight; ++tx)
-			{
-				ti = tz * mapwidth + tx;
-				auto* tile = &maptiles[ti];
+	auto* feather = &layer;
+	auto* tex_to = Get_texture_group(feather->to);
 
-				// This tile needs to be "from"
-				if (!Tile_in_group(tile, feather->from)) {
+	for (int i = 0; i < feather->iterations; ++i) {
+		for (int tz = 0; tz < mapwidth; ++tz)
+		for (int tx = 0; tx < mapheight; ++tx) {
+			ti = tz * mapwidth + tx;
+			auto* tile = &maptiles[ti];
+
+			// This tile needs to be "from"
+			if (!Tile_in_group(tile, feather->from)) {
+				continue;
+			}
+
+			// Check neighbours to be either "from" or "to"
+			tile_ok = true;
+			for (int ntz = -feather->border; ntz <= feather->border; ++ntz)
+			for (int ntx = -feather->border; ntx <= feather->border; ++ntx) {
+				// Skip if same tile.
+				if (ntz == 0 && ntx == 0) {
 					continue;
 				}
 
-				// Check neighbours to be either "from" or "to"
-				tile_ok = true;
-				for (int ntz = -feather->border; ntz <= feather->border; ++ntz)
-				for (int ntx = -feather->border; ntx <= feather->border; ++ntx)
-				{
-					// Skip if same tile.
-					if (ntz == 0 && ntx == 0) {
-						continue;
-					}
-
-					// Make circle.
-					if (feather->border > 3)
+				// Make circle.
+				if (feather->border > 3)
 					if (ntz * ntz + ntx * ntx > feather->border * feather->border) {
 						continue;
 					}
 
-					// Check tile.
-					auto* tile2 = Get_tile(tile, ntx, ntz);
-					if (!tile2) {
-						continue;
-					}
-					if (!Tile_in_group(tile2, feather->from)
-						&& !Tile_in_group(tile2, feather->to))
-					{
-						tile_ok = false;
-						goto exloop;
-					}
+				// Check tile.
+				auto* tile2 = Get_tile(tile, ntx, ntz);
+				if (!tile2) {
+					continue;
 				}
-			exloop:
-				if (!tile_ok) {
+				if (!Tile_in_group(tile2, feather->from)
+					&& !Tile_in_group(tile2, feather->to)) {
+					tile_ok = false;
+					goto exloop;
+				}
+			}
+		exloop:
+			if (!tile_ok) {
+				continue;
+			}
+
+			// Check neighbours to include at least one "to".
+			tile_ok = false;
+			for (int ntz = -feather->seek_radius; ntz <= feather->seek_radius; ++ntz)
+			for (int ntx = -feather->seek_radius; ntx <= feather->seek_radius; ++ntx) {
+				// Skip if same tile.
+				if (ntz == 0 && ntx == 0) {
 					continue;
 				}
 
-				// Check neighbours to include at least one "to".
-				tile_ok = false;
-				for (int ntz = -feather->seek_radius; ntz <= feather->seek_radius; ++ntz)
-				for (int ntx = -feather->seek_radius; ntx <= feather->seek_radius; ++ntx)
-				{
-					// Skip if same tile.
-					if (ntz == 0 && ntx == 0) {
-						continue;
-					}
-
-					// Make circle.
-					if (feather->border > 3)
+				// Make circle.
+				if (feather->border > 3)
 					if (ntz * ntz + ntx * ntx > feather->seek_radius * feather->seek_radius) {
 						continue;
 					}
 
-					// Check tile.
-					auto* tile2 = Get_tile(tile, ntx, ntz);
-					if (!tile2) {
-						continue;
-					}
-					if (Tile_in_group(tile2, feather->to)) {
-						tile_ok = true;
-						goto exloop2;
-					}
-				}
-			exloop2:
-				if (!tile_ok) {
+				// Check tile.
+				auto* tile2 = Get_tile(tile, ntx, ntz);
+				if (!tile2) {
 					continue;
 				}
-
-				// Check probability.
-				if (double(rand()) / RAND_MAX >= feather->probability) {
-					continue;
+				if (Tile_in_group(tile2, feather->to)) {
+					tile_ok = true;
+					goto exloop2;
 				}
-
-				auto* change = &changebuf[ti];// = rand() % tex_to->tex->len;
-				change->tile_id = rand() % tex_to->tex->len;
-				/*change->flipx = rand() % 2;
-				change->flipz = false;
-				change->rotation = rand() % 4;*/
-				change->flipx = false;// rand() % 2;
-				change->flipz = false;
-				change->rotation = 0;// rand() % 4;
+			}
+		exloop2:
+			if (!tile_ok) {
+				continue;
 			}
 
-			Apply_change_buffer(feather->to);
-		} // iterations
-	} // Feathers loop
+			// Check probability.
+			if (double(rand()) / RAND_MAX >= feather->probability) {
+				continue;
+			}
 
+			auto* change = &changebuf[ti];
+			change->tile_id = rand() % tex_to->tex->len;
+			change->flipx = false;
+			change->flipz = false;
+			change->rotation = 0;
+		}
 
-	Free_change_buffer();
-	Texture_cleanup();
+		Apply_change_buffer(feather->to);
+	} // iterations
 }

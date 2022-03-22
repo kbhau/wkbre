@@ -29,7 +29,12 @@ void Set_curtexgrp(MapTextureGroup* __curtexgrp);
 void Set_curtex(MapTexture* __curtex);
 MapTexture* Get_curtex();
 
-struct TextureLayerMain
+struct TexturingAction
+{
+	char action_type;
+};
+
+struct TextureLayerMain : TexturingAction
 {
 	char* group_name;
 	int height_min;
@@ -38,14 +43,14 @@ struct TextureLayerMain
 	int slope_max;
 };
 
-struct TextureLayerIntermediate
+struct TextureLayerIntermediate : TexturingAction
 {
 	char* group_a;
 	char* group_b;
 	char* replacement;
 };
 
-struct TextureLayerFeathering
+struct TextureLayerFeathering : TexturingAction
 {
 	char* from;
 	char* to;
@@ -55,7 +60,7 @@ struct TextureLayerFeathering
 	int iterations;
 };
 
-struct TextureLayerInner
+struct TextureLayerInner : TexturingAction
 {
 	char* parent_group_name;
 	char* inner_group_name;
@@ -110,10 +115,12 @@ struct TileTexChange
 
 
 
-extern GrowList<TextureLayerMain> main_layers;
-extern GrowList<TextureLayerIntermediate> replacements;
-extern GrowList<TextureLayerFeathering> feathers;
-extern GrowList<TextureLayerInner> inner_layers;
+//extern GrowList<TextureLayerMain> main_layers;
+//extern GrowList<TextureLayerIntermediate> replacements;
+//extern GrowList<TextureLayerFeathering> feathers;
+//extern GrowList<TextureLayerInner> inner_layers;
+
+extern GrowList<TexturingAction*> actions;
 extern GrowList<TextureLayerTransition> transitions;
 extern GrowList<ObjectDistribution> distributions;
 extern GrowList<ObjectDistributionNoise> noises;

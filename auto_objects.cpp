@@ -29,7 +29,7 @@ auto Get_noise(char* noise_name)
 		}
 	}
 	if (!pars) {
-		printf("Could not find noise [%s]", noise_name);
+		printf("Could not find noise [%s]\n", noise_name);
 		auto np = std::unique_ptr<FastNoiseLite>();
 		np = nullptr;
 		return np;
@@ -56,7 +56,7 @@ double Get_probability(
 	int x,
 	int z
 ) {
-	auto res = noise->GetNoise((double)x, (double)z);
+	auto res = (noise->GetNoise((double)x, (double)z) + 1.f) / 2.f;
 	return res * (probability_max - probability_min) + probability_min;
 }
 
@@ -88,10 +88,11 @@ bool Tile_in_transition_group(MapTile* tile, const char* group_name)
 
 
 
-void Remove_distribution_objects()
+void Remove_distributable_objects()
 {
 	int d_i;
 	ObjectDistribution* d;
+	printf("Num distributions=[%d]", distributions.len);
 	for (int di = 0; di < distributions.len; ++di) {
 		d = &distributions[di];
 
@@ -109,19 +110,35 @@ void Remove_distribution_objects()
 			continue;
 		}
 		def = &objdef[def_i];
+		printf("Removing [%s]\n", d->object_name);
 		RemoveObjOfType2(levelobj, def);
 	}
 }
 
 
 
-void Distribute_objects()
+void Remove_distributable_objects_menu()
+{
+	// Reads the config file.
+	Texture_read_layer_files();
+
+	Remove_distributable_objects();
+
+	// Cleans the config memory.
+	Texture_cleanup();
+}
+
+
+
+void Distribute_objects(bool pre_clean)
 {
 	// Reads the config file.
 	Texture_read_layer_files();
 
 	// Pre-clean.
-	Remove_distribution_objects();
+	if (pre_clean) {
+		Remove_distributable_objects();
+	}
 
 	int tile_i;
 	int d_i;

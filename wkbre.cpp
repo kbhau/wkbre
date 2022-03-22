@@ -25,14 +25,12 @@
 #include <string>
 #include <commdlg.h>
 
-void Texture_apply_main_layers();
-void Texture_replace_missing_transitions();
-void Texture_apply_inner_layers();
+void Texture_run_script();
 void Texture_fix_seams();
 void Texture_fix_seams_both();
 void Texture_fix_seams_old();
-void Texture_feather_seams();
-void Distribute_objects();
+void Remove_distributable_objects_menu();
+void Distribute_objects(bool pre_clean);
 void Debug_tile(MapTile* tile);
 
 
@@ -79,13 +77,10 @@ MenuEntry menucmds[] = {
 {"Change WK version", CMD_CHANGE_SG_WKVER},
 {"Quit", CMD_QUIT},
 {0,0},
-{"Apply main texture layers", CMD_TEXTURING_APPLY_MAIN_LAYERS},
-{"Apply inner layers",CMD_TEXTURING_APPLY_INNER_LAYERS},
-{"Feather texture seams", CMD_TEXTURING_FEATHER_SEAMS},
+{"Run texturing script", CMD_TEXTURING_RUN_SCRIPT},
 {"Fix texture seams using edges", CMD_TEXTURING_FIX_SEAMS},
 {"Fix texture seams using tile type", CMD_TEXTURING_FIX_SEAMS_OLD},
 {"Fix texture seams using tile type and edges", CMD_TEXTURING_FIX_SEAMS_BOTH},
-{"Replace missing transitions", CMD_TEXTURING_REPLACE_MISSING_TRANSITIONS},
 {0,0},
 {"Create object...", CMD_CREATEOBJ},
 {"Duplicate selected objects", CMD_DUPLICATESELOBJECT},
@@ -106,6 +101,8 @@ MenuEntry menucmds[] = {
 {"Select object by ID...", CMD_SELECT_OBJECT_ID},
 {"Enable/disable aligned movement", CMD_CHANGE_OBJMOVALIGN},
 {"Distribute objects", CMD_OBJECTS_DISTRIBUTE},
+{"Re-distribute objects", CMD_OBJECTS_DISTRIBUTE_PRE_CLEAN},
+{"Remove distributable objects", CMD_OBJECTS_REMOVE},
 {0,0},
 {"Pause/Resume", CMD_PAUSE},
 {"Increase game speed", CMD_GAME_SPEED_FASTER},
@@ -1059,14 +1056,8 @@ void CallCommand(int cmd)
 			GiveNotification("Map successfully exported to BCP.");
 			break;
 		}
-		case CMD_TEXTURING_APPLY_MAIN_LAYERS:
-			Texture_apply_main_layers();
-			break;
-		case CMD_TEXTURING_REPLACE_MISSING_TRANSITIONS:
-			Texture_replace_missing_transitions();
-			break;
-		case CMD_TEXTURING_APPLY_INNER_LAYERS:
-			Texture_apply_inner_layers();
+		case CMD_TEXTURING_RUN_SCRIPT:
+			Texture_run_script();
 			break;
 		case CMD_TEXTURING_FIX_SEAMS:
 			Texture_fix_seams();
@@ -1077,11 +1068,14 @@ void CallCommand(int cmd)
 		case CMD_TEXTURING_FIX_SEAMS_BOTH:
 			Texture_fix_seams_both();
 			break;
-		case CMD_TEXTURING_FEATHER_SEAMS:
-			Texture_feather_seams();
-			break;
 		case CMD_OBJECTS_DISTRIBUTE:
-			Distribute_objects();
+			Distribute_objects(false);
+			break;
+		case CMD_OBJECTS_DISTRIBUTE_PRE_CLEAN:
+			Distribute_objects(true);
+			break;
+		case CMD_OBJECTS_REMOVE:
+			Remove_distributable_objects_menu();
 			break;
 	}
 }
@@ -3133,13 +3127,10 @@ void IGMainMenuBar()
 	}
 	if (ImGui::BeginMenu("Texturing"))
 	{
-		if (ImGui::MenuItem("Apply main layers")) CallCommand(CMD_TEXTURING_APPLY_MAIN_LAYERS);
-		if (ImGui::MenuItem("Apply inner layers")) CallCommand(CMD_TEXTURING_APPLY_INNER_LAYERS);
-		if (ImGui::MenuItem("Feather seams")) CallCommand(CMD_TEXTURING_FEATHER_SEAMS);
+		if (ImGui::MenuItem("Run texturing script")) CallCommand(CMD_TEXTURING_RUN_SCRIPT);
 		if (ImGui::MenuItem("Fix seams using edges")) CallCommand(CMD_TEXTURING_FIX_SEAMS);
 		if (ImGui::MenuItem("Fix seams using tile type")) CallCommand(CMD_TEXTURING_FIX_SEAMS_OLD);
 		if (ImGui::MenuItem("Fix seams using tile type and edges")) CallCommand(CMD_TEXTURING_FIX_SEAMS_BOTH);
-		if (ImGui::MenuItem("Replace missing transitions")) CallCommand(CMD_TEXTURING_REPLACE_MISSING_TRANSITIONS);
 		ImGui::EndMenu();
 	}
 	if(ImGui::BeginMenu("Object"))
@@ -3165,7 +3156,10 @@ void IGMainMenuBar()
 			if (ImGui::MenuItem("Delete class...")) CallCommand(CMD_DELETEOBJCLASS);
 			ImGui::EndMenu();
 		}
+		ImGui::Separator();
 		if (ImGui::MenuItem("Distribute objects")) CallCommand(CMD_OBJECTS_DISTRIBUTE);
+		if (ImGui::MenuItem("Re-distribute objects")) CallCommand(CMD_OBJECTS_DISTRIBUTE_PRE_CLEAN);
+		if (ImGui::MenuItem("Remove distributable objects")) CallCommand(CMD_OBJECTS_REMOVE);
 		ImGui::EndMenu();
 	}
 	if(ImGui::BeginMenu("Game"))
