@@ -1,22 +1,33 @@
+
+################################################################################
+#
+#                      WKBRE TEXTURING CONFIGURATION FILE
+#
+################################################################################
+
+
 # ------------------------------------------------------------------------------
-# So the limitations are that we can only ever have 2 texture types ever meet.
+# The limitations are that we can only ever have 2 texture types ever meet.
 # This implies that we can only have bands and splats inside them. 3-way
 # transitions don't exist.
 #
-# Updated workflow:
-# - Apply main layers.
-# - Apply inner layers.
+# Workflow:
+# - Write your texturing script in the !ACTIONS section.
+# - Run the script in the editor.
 # - Paint rivers and fixes (rivers are tricky: same height as sea, different
 #   texture. You can paint just shallow-river and deep-river will be picked by
 #   inners).
-# - Apply inner layers again.
-# - Fix whatever should be plain but got filled.
-# - Apply transition textures.
+# - SAVE YOUR WORK.
+# - Run one of the fix seams functions.
 # - If anything is off, use wkbre autotile. It's not perfect but will do the
-#   precision work sort of.
-# - Then you can distribute objects (bottom of this file).
+#   precision work sort of. Or use the base texture tool for utmost control.
+# - Distribute objects (bottom of this file).
 # ------------------------------------------------------------------------------
 
+
+################################################################################
+################################################################################
+################################################################################
 
 
 # ------------------------------------------------------------------------------
@@ -29,29 +40,109 @@
 
 !VARS
 
+
 # Main heights.
-HEIGHT_SAND=25
-HEIGHT_GRASS=56
-HEIGHT_HIGHLAND=64
+HEIGHT_SAND=15
+HEIGHT_GRASS=30
+HEIGHT_HIGHLAND=45
+HEIGHT_MOUNTAIN=60
 HEIGHT_MAX=9001
 
 # Helper heights.
-HEIGHT_SEA=20
-HEIGHT_SHRUB_1=16
-HEIGHT_SHRUB_2=18
-HEIGHT_SHRUB_3=21
-HEIGHT_SHRUB_4=24
+HEIGHT_SEA=10
+HEIGHT_SHRUB_1=6
+HEIGHT_SHRUB_2=9
+HEIGHT_SHRUB_3=11
+HEIGHT_SHRUB_4=14
 
 # Slopes.
 SLOPE_LOWER=10
 SLOPE_LOW=15
-SLOPE_MID=30
-SLOPE_HIGH=45
-SLOPE_HIGHER=53
+SLOPE_MID=25
+SLOPE_HIGH=35
+SLOPE_HIGHER=40
 SLOPE_MAX=9001
 
 # Borders (for inners).
-BORDER_MIN=3
+BORDER_MIN=2
+
+# Utility.
+BM=BORDER_MIN
+BMM=3
+M=10000
+
+
+
+# ------------------------------------------------------------------------------
+# Floating point - use only where specified.
+# ------------------------------------------------------------------------------
+
+!VARSF
+
+
+# Feathering probabilities.
+FP=0.0625
+
+# Noise frequencies.
+F_TREES=0.015
+F_ROCKS=0.01
+
+# Distance from tile border (0.0 - 0.5).
+BD=0.2
+
+
+# Object distribution probabilities
+DIST_GOLD_HIGH=0.025
+
+DIST_ROCK_HIGH=0.05
+
+DIST_CEDAR_HIGH=0.00045
+DIST_CEDAR_MID=0.00015
+DIST_CEDAR_LOW=0.00005
+
+DIST_CONIFEROUS_HIGH=0.25
+DIST_CONIFEROUS_MID=0.15
+DIST_CONIFEROUS_LOW=0.03
+DIST_CONIFEROUS_LOWER=0.0015
+
+DIST_DECIDUOUS_HIGH=0.18
+DIST_DECIDUOUS_MID=0.1
+DIST_DECIDUOUS_LOW=0.02
+DIST_DECIDUOUS_LOWER=0.0005
+
+DIST_WILLOW_HIGH=0.003
+DIST_WILLOW_MID=0.001
+DIST_WILLOW_LOW=0.0003
+DIST_WILLOW_LOW=0.0001
+
+DIST_DEAD_TREE=0.003
+
+DIST_BIRDS_HIGH=0.045
+DIST_BIRDS_MID=0.015
+DIST_BIRDS_LOW=0.005
+DIST_BIRDS_LOWER=0.0018
+
+DIST_BUSHES_HIGH=0.0675
+DIST_BUSHES_MID=0.0225
+DIST_BUSHES_LOW=0.0075
+DIST_BUSHES_LOWER=0.003
+
+DIST_GRASSES_MID=0.05
+
+DIST_GRASSANDSTONE_HIGH=0.15
+DIST_GRASSANDSTONE_MID=0.05
+DIST_GRASSANDSTONE_LOW=0.02
+DIST_GRASSANDSTONE_LOWER=0.01
+
+DIST_STONE_HIGH=0.03
+DIST_STONE_MID=0.01
+DIST_STONE_LOW=0.0035
+DIST_STONE_LOWER=0.001
+
+DIST_LITTER_MID=0.015
+DIST_LITTER_LOW=0.005
+DIST_LITTER_LOWER=0.0015
+DIST_LITTER_LOWEST=0.0003
 
 
 
@@ -61,40 +152,92 @@ BORDER_MIN=3
 
 !VARS2
 
-REPLACEMENT_ITERATIONS=2
-KNOT_ITERATIONS=1
+FILL_ISLANDS_MIN_NEIGHBOURS=3
 FIX_SEAMS_ITERATIONS=4
+REPLACEMENT_ITERATIONS=2
 
+
+################################################################################
+################################################################################
+################################################################################
 
 
 # ------------------------------------------------------------------------------
-# Main layers:
+# Texturing script here. Following commands will be executed sequentially. This
+# replaces the old workflow where all the layers were applied as a single action
+# and breaks it down to one layer at the time. This should allow the most
+# control of the process and hopefully prettier landscapes.
+#
+# Notes:
+# - each step changes the board so the following step will work on updated
+#   tiles,
+# - this was designed to work with full tiles only, transitions are added later,
+# - make sure to place the matching letter first as it tells the parser which
+#   function to use.
+#
+# Available functions are as follows:
+#
+# -------------------------------------
+# [M] Main layers:
 # - Texture group name
 # - Min height 
 # - Max height
 # - Min slope
 # - Max slope
 #
-# These are your main layers from lowest to highest. Later ones will overwrite
-# earlier ones if meet same conditions.
-# ------------------------------------------------------------------------------
-
-!LAYERS
-
-SAND1,0,HEIGHT_SAND,0,SLOPE_MAX
-GRASS1,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_MAX
-MIDHILL1,HEIGHT_GRASS,HEIGHT_HIGHLAND,0,SLOPE_MAX
-ROCK1,HEIGHT_HIGHLAND,HEIGHT_MAX,0,SLOPE_MAX
-
-
-
-# ------------------------------------------------------------------------------
-# Transition replacements:
+# Example:
+# M,SAND1,0,255,0,90
+#
+# Places the texture anywhere with matching height and slope. Too much use of
+# this function will make resolving transitions impossible.
+#
+# -------------------------------------
+# [I] Inner fills:
+# - Parent group name
+# - Inner group name 
+# - Border radius
+# - Min height 
+# - Max height
+# - Min slope
+# - Max slope
+#
+# Example:
+# I,SAND1,SAND2,5,0,255,0,90
+#
+# Finds tiles in parent group name and replaces them with inner tiles if there
+# are only parent tiles in the radius specified. This ensures no every scenario
+# is resolvable.
+# 
+# -------------------------------------
+# [F] Feathering:
+# - From group
+# - To group
+# - From group border (apply only when there is no other groups involved in
+#	radius)
+# - To group radius (if there's no "to group" in radius, do not change)
+# - Change probability (float 0-1)
+# - Number of iterations (helps create falloff effect)
+#
+# Example:
+# F,SAND1,SAND2,5,5,0.1,2
+#
+# Finds tiles in "from" group and replaces them with tiles in "to" group when:
+# - there is only "from" or "to" tiles in the first radius,
+# - there is at least one "to" tile in the second radius,
+# - probability roll is successful.
+# There is no need for height and slope as there rules should be ingrained in
+# the tiles we look for in the first place.
+#
+# -------------------------------------
+# [R] Transition replacements:
 # - Group 1
 # - Group 2
 # - Replacement group
 #
-# Some transition textured don't exist but the layer rules still put them next
+# Example:
+# R,SAND1,GRASS5,SHRUB1
+#
+# Some transition textures don't exist but the layer rules still put them next
 # to each other. These will put replacement texture on the border between them
 # so the autotile can tackle it later.
 # Note: the amount of non-existing transitions is quite big so only put in the
@@ -104,129 +247,141 @@ ROCK1,HEIGHT_HIGHLAND,HEIGHT_MAX,0,SLOPE_MAX
 #       first place. Still it is here if you decide to use it.
 # ------------------------------------------------------------------------------
 
-!REPLACEMENTS
+!ACTIONS
 
 
 
-# ------------------------------------------------------------------------------
-# Knots:
-# - Group name
-#
-# This finds the tiles in the tex group, then checks adjacent tiles if they have
-# contains more than one other texture group. If so then all tiles are turned
-# into this group.
-#
-# EDIT: This is a flawed idea. We can only ever blend 2 textures in this system,
-#       meaning that there is no resolving knots. Only bands and inners are
-#       possible to blend seamlessly.
-# ------------------------------------------------------------------------------
+# -------------------------------------
+# Main layers.
+# -------------------------------------
 
-!KNOTS
+M,SAND1,0,M,0,M
+M,GRASS1,HEIGHT_SAND,HEIGHT_GRASS,0,M
+M,MIDHILL1,HEIGHT_GRASS,HEIGHT_HIGHLAND,0,M
+M,ROCK1,HEIGHT_HIGHLAND,M,0,M
+
+F,GRASS1,SAND1,BMM,3,FP,4
 
 
+# -------------------------------------
+# Shore.
+# -------------------------------------
 
-# ------------------------------------------------------------------------------
-# Inner fills:
-# - Parent group name
-# - Inner group name 
-# - Border radius
-# - Min height 
-# - Max height
-# - Min slope
-# - Max slope
-#
-# Substitutions from top to bottom which means you can prepare ground for layers
-# that follow. Think of it as of a cellular automata where each step changes
-# state of the board. Can get creative =^.^=
-#
-# EDIT: Added conditions for the tiles, which should allow us to achieve more
-#       complex texturing without sacrificing seamlessness.
-# ------------------------------------------------------------------------------
-
-!INNERS
-
-
-
-# Seabed.
-SAND1,SANDSTONE1,BORDER_MIN,0,HEIGHT_SEA,SLOPE_MID,SLOPE_MAX
-SANDSTONE1,SANDSTONE2,BORDER_MIN,0,HEIGHT_SEA,SLOPE_HIGH,SLOPE_MAX
-SAND1,SAND2,10,0,HEIGHT_SEA,0,SLOPE_MAX
-SAND2,SAND3,10,0,HEIGHT_SEA,0,SLOPE_MAX
-SAND3,SAND4,10,0,HEIGHT_SEA,0,SLOPE_MAX
+# Underwater business.
+I,SAND1,SANDSTONE1,BM,0,HEIGHT_SEA,SLOPE_MID,M
+I,SANDSTONE1,SANDSTONE2,BM,0,HEIGHT_SEA,SLOPE_HIGH,M
+I,SAND1,SAND2,10,0,HEIGHT_SEA,0,M
+I,SAND2,SAND3,10,0,HEIGHT_SEA,0,M
+I,SAND3,SAND4,10,0,HEIGHT_SEA,0,M
+F,SAND4,SAND3,BM,4,FP,5
+F,SAND3,SAND2,BM,4,FP,5
+F,SAND2,SAND1,BM,5,FP,5
 
 # Sand cliffs above water.
-SAND1,ROCK1,BORDER_MIN,HEIGHT_SEA,HEIGHT_SAND,SLOPE_HIGH,SLOPE_MAX
-SAND1,CLIFF1,BORDER_MIN,HEIGHT_SEA,HEIGHT_SAND,SLOPE_MID,SLOPE_MAX
-
-
+I,SAND1,ROCK1,BM,HEIGHT_SEA,HEIGHT_SAND,SLOPE_HIGH,M
+I,SAND1,CLIFF1,BM,HEIGHT_SEA,HEIGHT_SAND,SLOPE_MID,M
 
 # Shrubs.
-SAND1,SHRUB1,BORDER_MIN,HEIGHT_SHRUB_1,HEIGHT_SHRUB_2,0,SLOPE_LOW
-SAND1,SHRUB1,BORDER_MIN,HEIGHT_SHRUB_3,HEIGHT_SHRUB_4,0,SLOPE_MAX
+I,SAND1,SHRUB1,BM,HEIGHT_SHRUB_1,HEIGHT_SHRUB_2,0,M
+I,SAND1,SHRUB1,BM,HEIGHT_SHRUB_3,HEIGHT_SHRUB_4,0,M
+F,SHRUB1,SAND1,BM,2,FP,2
 
 # If too much shrub.
-SHRUB1,GRASS5,BORDER_MIN,HEIGHT_SHRUB_3,HEIGHT_SHRUB_4,0,SLOPE_MAX
+I,SHRUB1,GRASS5,BM,HEIGHT_SHRUB_3,HEIGHT_SHRUB_4,0,M
+F,GRASS5,SHRUB1,BM,2,FP,4
 
-# Shrub hills.
-GRASS5,MIDHILL1,BORDER_MIN,HEIGHT_SHRUB_3,HEIGHT_SHRUB_4,SLOPE_MID,SLOPE_MAX
-MIDHILL1,ROCK1,BORDER_MIN,HEIGHT_SHRUB_3,HEIGHT_SHRUB_4,SLOPE_HIGH,SLOPE_MAX
-GRASS5,LOWHILL1,BORDER_MIN,HEIGHT_SHRUB_3,HEIGHT_SHRUB_4,SLOPE_LOW,SLOPE_MAX
+# Shrub hills - tbh never seen this happen.
+I,GRASS5,MIDHILL1,BM,HEIGHT_SHRUB_3,HEIGHT_SHRUB_4,SLOPE_MID,M
+I,MIDHILL1,ROCK1,BM,HEIGHT_SHRUB_3,HEIGHT_SHRUB_4,SLOPE_HIGH,M
+I,GRASS5,LOWHILL1,BM,HEIGHT_SHRUB_3,HEIGHT_SHRUB_4,SLOPE_LOW,M
 
 # Remaining sand cliffs.
-SAND1,CLIFF1,BORDER_MIN,0,HEIGHT_SAND,SLOPE_HIGH,SLOPE_MAX
+I,SAND1,CLIFF1,BM,0,HEIGHT_SAND,SLOPE_HIGH,M
 
 
-
-# Grassland midhills.
-GRASS1,MIDHILL1,BORDER_MIN,HEIGHT_SAND,HEIGHT_GRASS,SLOPE_MID,SLOPE_MAX
-MIDHILL1,ROCK1,BORDER_MIN,HEIGHT_SAND,HEIGHT_HIGHLAND,SLOPE_HIGH,SLOPE_MAX
+# -------------------------------------
+# Grasslands.
+# -------------------------------------
 
 # Low hill.
-GRASS1,LOWHILL1,BORDER_MIN,HEIGHT_SAND,HEIGHT_GRASS,SLOPE_LOW,SLOPE_MID
+I,GRASS1,LOWHILL1,BMM,HEIGHT_SAND,M,SLOPE_LOW,SLOPE_MID
 
-# Dry lands.
-GRASS1,ROCKYGRASS2,35,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_LOW
-ROCKYGRASS2,D_EARTH1,BORDER_MIN,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_LOW
-D_EARTH1,SAND1,BORDER_MIN,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_LOW
+# Grassland midhills.
+I,GRASS1,MIDHILL1,BMM,HEIGHT_SAND,HEIGHT_GRASS,SLOPE_MID,M
+I,MIDHILL1,ROCK1,BM,HEIGHT_SAND,HEIGHT_HIGHLAND,SLOPE_HIGH,M
 
 # Pretty green grass.
-GRASS1,GRASS4,20,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_MID
-GRASS1,GRASS2,10,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_MID
+I,GRASS1,GRASS4,7,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_MID
+F,GRASS4,GRASS1,BM,2,FP,2
+I,GRASS1,GRASS3,5,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_MID
 
 
+# Dry lands.
+I,GRASS1,ROCKYGRASS2,35,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_LOW
+F,ROCKYGRASS2,GRASS1,BM,2,FP,2
+I,ROCKYGRASS2,D_EARTH1,BM,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_LOW
+F,D_EARTH1,ROCKYGRASS2,BM,2,FP,2
+I,D_EARTH1,SAND1,BM,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_LOW
+F,SAND1,D_EARTH1,BM,2,FP,2
 
+
+# -------------------------------------
 # Highlands.
-ROCK1,EARTH1,BORDER_MIN,HEIGHT_GRASS,HEIGHT_HIGHLAND,0,SLOPE_LOW
-EARTH1,ROCKYGRASS2,BORDER_MIN,HEIGHT_GRASS,HEIGHT_HIGHLAND,0,SLOPE_LOW
-ROCKYGRASS2,GRASS1,BORDER_MIN,HEIGHT_GRASS,HEIGHT_HIGHLAND,0,SLOPE_LOW
+# -------------------------------------
 
-# Highlands forest ground.
-ROCK1,EARTH1,BORDER_MIN,HEIGHT_GRASS,HEIGHT_HIGHLAND,SLOPE_LOW,SLOPE_HIGH
-EARTH1,ROCKYGRASS1,BORDER_MIN,HEIGHT_GRASS,HEIGHT_HIGHLAND,SLOPE_LOW,SLOPE_HIGH
-ROCKYGRASS1,GRASS5,BORDER_MIN,HEIGHT_GRASS,HEIGHT_HIGHLAND,SLOPE_LOW,SLOPE_HIGH
-
-
-
-# Forest.
-
-GRASS2,FOREST3,BORDER_MIN,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_HIGH
-
-GRASS4,GRASS3,15,HEIGHT_SAND,HEIGHT_GRASS,0,SLOPE_MID
-
-MIDHILL1,GRASS5,7,HEIGHT_SAND,HEIGHT_HIGHLAND,0,SLOPE_HIGH
-GRASS5,GRASS3,BORDER_MIN,HEIGHT_SAND,HEIGHT_HIGHLAND,0,SLOPE_HIGH
-
-GRASS3,FOREST3,BORDER_MIN,HEIGHT_SAND,HEIGHT_HIGHLAND,0,SLOPE_HIGH
-
-FOREST3,FOREST1,BORDER_MIN,HEIGHT_SAND,HEIGHT_HIGHLAND,0,SLOPE_HIGH
-FOREST1,FOREST2,BORDER_MIN,HEIGHT_SAND,HEIGHT_HIGHLAND,0,SLOPE_HIGH
+I,ROCK1,EARTH1,BMM,HEIGHT_GRASS,HEIGHT_MOUNTAIN,0,SLOPE_HIGH
+F,EARTH1,ROCK1,BM,2,FP,2
+I,EARTH1,ROCKYGRASS1,BM,HEIGHT_GRASS,HEIGHT_MOUNTAIN,0,SLOPE_HIGH
+F,ROCKYGRASS1,EARTH1,BM,2,FP,2
+I,ROCKYGRASS1,GRASS5,BM,HEIGHT_GRASS,HEIGHT_MOUNTAIN,0,SLOPE_HIGH
+F,GRASS5,ROCKYGRASS1,BM,2,FP,2
 
 
+# -------------------------------------
+# Mountains.
+# -------------------------------------
 
-# Mountain.
-ROCK1,MOUNTAIN1,BORDER_MIN,HEIGHT_HIGHLAND,HEIGHT_MAX,0,SLOPE_HIGHER
-MOUNTAIN1,SNOW1,BORDER_MIN,HEIGHT_HIGHLAND,HEIGHT_MAX,0,SLOPE_LOW
+I,ROCK1,MOUNTAIN1,BMM,HEIGHT_HIGHLAND,M,0,SLOPE_HIGH
+F,MOUNTAIN1,ROCK1,BM,2,FP,2
+I,MOUNTAIN1,SNOW1,BM,HEIGHT_HIGHLAND,M,0,SLOPE_MID
+F,SNOW1,MOUNTAIN1,BM,2,FP,2
 
+
+# -------------------------------------
+# Forests.
+# -------------------------------------
+
+# Forest on GRASS2
+I,GRASS2,FOREST3,BM,HEIGHT_SAND,HEIGHT_MOUNTAIN,0,SLOPE_HIGH
+F,FOREST3,GRASS2,BM,2,FP,2
+
+
+# Transitions to GRASS3
+I,GRASS4,GRASS3,7,HEIGHT_SAND,HEIGHT_MOUNTAIN,0,SLOPE_MID
+F,GRASS3,GRASS4,BM,2,FP,4
+
+I,MIDHILL1,GRASS5,4,HEIGHT_SAND,HEIGHT_MOUNTAIN,0,SLOPE_HIGH
+F,GRASS5,MIDHILL1,BM,2,FP,2
+I,GRASS5,GRASS3,BM,HEIGHT_SAND,HEIGHT_MOUNTAIN,SLOPE_LOWER,SLOPE_HIGH
+I,GRASS5,GRASS3,4,HEIGHT_SAND,HEIGHT_MOUNTAIN,0,SLOPE_HIGH
+F,GRASS3,GRASS5,BM,2,FP,2
+
+
+# Forest on GRASS3
+I,GRASS3,FOREST3,BM,HEIGHT_SAND,HEIGHT_MOUNTAIN,0,SLOPE_HIGH
+F,FOREST3,GRASS3,BM,2,FP,2
+
+
+# Dense the forests.
+I,FOREST3,FOREST1,BM,HEIGHT_SAND,HEIGHT_HIGHLAND,0,SLOPE_HIGH
+F,FOREST1,FOREST3,BM,2,FP,2
+I,FOREST1,FOREST2,BMM,HEIGHT_SAND,HEIGHT_HIGHLAND,0,SLOPE_HIGH
+F,FOREST2,FOREST1,BM,2,FP,2
+
+
+################################################################################
+################################################################################
+################################################################################
 
 
 # ------------------------------------------------------------------------------
@@ -236,6 +391,9 @@ MOUNTAIN1,SNOW1,BORDER_MIN,HEIGHT_HIGHLAND,HEIGHT_MAX,0,SLOPE_LOW
 # - To texture group
 # - Keep order (T - true, F - false), change if layers get eaten too much and
 #   effectively disappear after the operation.
+#
+# This is a piece of knowledge that glues it all together. Please do not change
+# unless you know what you're doing.
 # ------------------------------------------------------------------------------
 
 !TRANSITIONS
@@ -307,111 +465,151 @@ SNOW2-SNOW4,SNOW2,SNOW4,T
 SNOW3-SNOW4,SNOW3,SNOW4,T
 
 
+################################################################################
+################################################################################
+################################################################################
+
+
+# ------------------------------------------------------------------------------
+# Noises:
+# - Noise name
+# - Seed
+# - Frequency (float)
+# - Octaves
+# - Lacunarity (float)
+# - Gain (float)
+# - Weighted strength (float)
+#
+# Parameters for the Open Simplex 2 noise from FastNoise Lite library. These
+# creates a 2D noise map which then influences object placement.
+# ------------------------------------------------------------------------------
+
+!NOISES
+
+N_TREES,1349,F_TREES,5,2.2,0.7,0.4
+N_ROCKS,793,F_ROCKS,5,2.2,0.7,0.4
+
+
 
 # ------------------------------------------------------------------------------
 # Object distributions:
 # - Tile texture group
 # - Object name
-# - Probability to spawn on the tile (float 0-1)
 # - Distance to the tile edge (float 0-0.5), helps to avoid objects spawning too
 #   close, hopefully. Not tested.
+# - Noise name
+# - Minimum probability to spawn on the tile (float 0-1)
+# - Maximum probability to spawn on the tile (float 0-1)
+# - Height min
+# - Height max
+# - Slope min
+# - Slope max
+#
+# Finds tiles in specified group, then samples the probabilities. Values from
+# the noise map are mapped between min and max value.
 #
 # On transition tiles the probability is halved, no need to specify them.
+#
+# Try to place objects with highest importance first as the spawning will check
+# if the given tile has been spawned on before.
 # ------------------------------------------------------------------------------
 
 !DISTRIBUTIONS
 
 
 
-# Fields.
+# Resources.
 
-GRASS1,Cedar Tree,0.00015,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS1,Coniferous Tree,0.0015,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS1,Deciduous Tree,0.0002,0.3,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_MID
-GRASS1,Birds,0.0005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS1,Bushes,0.0005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS1,City Litter,0.0003,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS1,Grass and Stone,0.005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS1,Stone1,0.0025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS1,Stone2,0.0025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-
-GRASS2,Birds,0.005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS2,Grass and Stone,0.05,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS2,Stone1,0.025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS2,Stone2,0.025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-
-GRASS3,Coniferous Tree,0.0015,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS3,Deciduous Tree,0.0002,0.3,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_MID
-GRASS3,Birds,0.0005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS3,Bushes,0.0005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS3,City Litter,0.0003,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS3,Grass and Stone,0.005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS3,Stone1,0.0025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS3,Stone2,0.0025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-
-GRASS4,Grasses,0.05,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS4,Grass and Stone,0.025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS4,Stone1,0.005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS4,Stone2,0.005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-
-GRASS5,Birds,0.005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS5,Grass and Stone,0.05,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS5,Stone1,0.025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-GRASS5,Stone2,0.025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
+LOWHILL1,Gold Deposit Biggest,BD,N_ROCKS,0,DIST_GOLD_HIGH,0,M,0,M
+LOWHILL1,Rock Outcrop Biggest,BD,N_ROCKS,0,DIST_ROCK_HIGH,0,M,0,M
 
 
 
-# Main forests.
+# Trees.
 
-FOREST3,Coniferous Tree,0.15,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST3,Deciduous Tree,0.02,0.3,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST3,Birds,0.05,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST3,Bushes,0.05,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST3,City Litter,0.03,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST3,Grass and Stone,0.05,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST3,Stone1,0.025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST3,Stone2,0.025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
+GRASS1,Cedar Tree,BD,N_TREES,0,DIST_CEDAR_MID,0,M,0,M
+GRASS3,Cedar Tree,BD,N_TREES,0,DIST_CEDAR_HIGH,0,M,0,M
+LOWHILL1,Cedar Tree,BD,N_TREES,0,DIST_CEDAR_LOW,0,M,0,M
+MIDHILL1,Cedar Tree,BD,N_TREES,0,DIST_CEDAR_MID,0,M,0,M
 
-FOREST1,Coniferous Tree,0.075,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST1,Deciduous Tree,0.075,0.3,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST1,Birds,0.05,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST1,Bushes,0.05,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST1,City Litter,0.02,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST1,Grass and Stone,0.05,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST1,Stone1,0.025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST1,Stone2,0.025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
+GRASS4,Willow Tree,BD,N_TREES,0,DIST_WILLOW_MID,0,M,0,M
 
-FOREST2,Coniferous Tree,0.02,0.3,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST2,Deciduous Tree,0.15,0.3,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST2,Birds,0.05,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST2,Bushes,0.05,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST2,City Litter,0.01,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST2,Grass and Stone,0.05,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST2,Stone1,0.025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-FOREST2,Stone2,0.025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
+GRASS1,Deciduous Tree,BD,N_TREES,0,DIST_DECIDUOUS_LOWER,0,M,0,M
+GRASS3,Deciduous Tree,BD,N_TREES,0,DIST_DECIDUOUS_LOWER,0,M,0,M
+FOREST3,Deciduous Tree,BD,N_TREES,0,DIST_DECIDUOUS_LOW,0,M,0,M
+FOREST1,Deciduous Tree,BD,N_TREES,0,DIST_DECIDUOUS_MID,0,M,0,M
+FOREST2,Deciduous Tree,BD,N_TREES,0,DIST_DECIDUOUS_HIGH,0,M,0,M
+
+GRASS1,Coniferous Tree,BD,N_TREES,0,DIST_CONIFEROUS_LOWER,0,M,0,M
+GRASS3,Coniferous Tree,BD,N_TREES,0,DIST_CONIFEROUS_LOW,0,M,0,M
+FOREST3,Coniferous Tree,BD,N_TREES,0,DIST_CONIFEROUS_HIGH,0,M,0,M
+FOREST1,Coniferous Tree,BD,N_TREES,0,DIST_CONIFEROUS_MID,0,M,0,M
+FOREST2,Coniferous Tree,BD,N_TREES,0,DIST_CONIFEROUS_LOW,0,M,0,M
+MIDHILL1,Coniferous Tree,BD,N_TREES,0,DIST_CONIFEROUS_LOWER,0,M,0,M
+
+D_EARTH1,Dead Tree,BD,N_TREES,0,DIST_DEAD_TREE,0,M,0,M
 
 
 
-# Hills.
+# Nature.
 
-MIDHILL1,Cedar Tree,0.00005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-LOWHILL1,Grass and Stone,0.03,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-LOWHILL1,Stone1,0.0075,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-LOWHILL1,Stone2,0.0075,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
+GRASS1,Bushes,BD,N_TREES,0,DIST_BUSHES_LOW,0,M,0,M
+GRASS3,Bushes,BD,N_TREES,0,DIST_BUSHES_MID,0,M,0,M
+GRASS5,Bushes,BD,N_TREES,0,DIST_BUSHES_LOWER,0,M,0,M
+FOREST3,Bushes,BD,N_TREES,0,DIST_BUSHES_HIGH,0,M,0,M
+FOREST1,Bushes,BD,N_TREES,0,DIST_BUSHES_HIGH,0,M,0,M
+FOREST2,Bushes,BD,N_TREES,0,DIST_BUSHES_HIGH,0,M,0,M
+MIDHILL1,Bushes,BD,N_TREES,0,DIST_BUSHES_LOWER,0,M,0,M
 
-MIDHILL1,Cedar Tree,0.00015,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-MIDHILL1,Coniferous Tree,0.005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-MIDHILL1,Birds,0.0025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-MIDHILL1,Bushes,0.01,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-MIDHILL1,Grass and Stone,0.01,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
+D_EARTH1,Stone1,BD,N_TREES,0,DIST_STONE_MID,0,M,0,M
+GRASS1,Stone1,BD,N_TREES,0,DIST_STONE_LOW,0,M,0,M
+GRASS3,Stone1,BD,N_TREES,0,DIST_STONE_LOW,0,M,0,M
+GRASS4,Stone1,BD,N_TREES,0,DIST_STONE_LOWER,0,M,0,M
+GRASS5,Stone1,BD,N_TREES,0,DIST_STONE_HIGH,0,M,0,M
+FOREST3,Stone1,BD,N_TREES,0,DIST_STONE_HIGH,0,M,0,M
+FOREST1,Stone1,BD,N_TREES,0,DIST_STONE_HIGH,0,M,0,M
+FOREST2,Stone1,BD,N_TREES,0,DIST_STONE_HIGH,0,M,0,M
+LOWHILL1,Stone1,BD,N_TREES,0,DIST_STONE_MID,0,M,0,M
+
+D_EARTH1,Stone2,BD,N_TREES,0,DIST_STONE_MID,0,M,0,M
+GRASS1,Stone2,BD,N_TREES,0,DIST_STONE_LOW,0,M,0,M
+GRASS3,Stone2,BD,N_TREES,0,DIST_STONE_LOW,0,M,0,M
+GRASS4,Stone2,BD,N_TREES,0,DIST_STONE_LOWER,0,M,0,M
+GRASS5,Stone2,BD,N_TREES,0,DIST_STONE_HIGH,0,M,0,M
+FOREST3,Stone2,BD,N_TREES,0,DIST_STONE_HIGH,0,M,0,M
+FOREST1,Stone2,BD,N_TREES,0,DIST_STONE_HIGH,0,M,0,M
+FOREST2,Stone2,BD,N_TREES,0,DIST_STONE_HIGH,0,M,0,M
+LOWHILL1,Stone2,BD,N_TREES,0,DIST_STONE_MID,0,M,0,M
+
+GRASS4,Grasses,BD,N_TREES,0,DIST_GRASSES_MID,0,M,0,M
+
+GRASS1,Grass and Stone,BD,N_TREES,0,DIST_GRASSANDSTONE_MID,0,M,0,M
+GRASS3,Grass and Stone,BD,N_TREES,0,DIST_GRASSANDSTONE_MID,0,M,0,M
+GRASS4,Grass and Stone,BD,N_TREES,0,DIST_GRASSANDSTONE_MID,0,M,0,M
+GRASS5,Grass and Stone,BD,N_TREES,0,DIST_GRASSANDSTONE_MID,0,M,0,M
+FOREST3,Grass and Stone,BD,N_TREES,0,DIST_GRASSANDSTONE_HIGH,0,M,0,M
+FOREST1,Grass and Stone,BD,N_TREES,0,DIST_GRASSANDSTONE_HIGH,0,M,0,M
+FOREST2,Grass and Stone,BD,N_TREES,0,DIST_GRASSANDSTONE_HIGH,0,M,0,M
+LOWHILL1,Grass and Stone,BD,N_TREES,0,DIST_GRASSANDSTONE_LOW,0,M,0,M
+MIDHILL1,Grass and Stone,BD,N_TREES,0,DIST_GRASSANDSTONE_LOWER,0,M,0,M
+
+GRASS1,Birds,BD,N_TREES,0,DIST_BIRDS_LOW,0,M,0,M
+GRASS3,Birds,BD,N_TREES,0,DIST_BIRDS_MID,0,M,0,M
+GRASS5,Birds,BD,N_TREES,0,DIST_BIRDS_LOWER,0,M,0,M
+FOREST3,Birds,BD,N_TREES,0,DIST_BIRDS_HIGH,0,M,0,M
+FOREST1,Birds,BD,N_TREES,0,DIST_BIRDS_HIGH,0,M,0,M
+FOREST2,Birds,BD,N_TREES,0,DIST_BIRDS_MID,0,M,0,M
+MIDHILL1,Birds,BD,N_TREES,0,DIST_BIRDS_LOWER,0,M,0,M
 
 
 
-# Desert.
+# Humans stuff.
 
-D_EARTH1,Dead Tree,0.0025,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-D_EARTH1,Stone1,0.005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
-D_EARTH1,Stone2,0.005,0.2,HEIGHT_SAND,HEIGHT_HIGHLANDS,0,SLOPE_HIGH
+GRASS1,City Litter,BD,N_TREES,0,DIST_LITTER_LOWEST,0,M,0,M
+GRASS3,City Litter,BD,N_TREES,0,DIST_LITTER_LOWER,0,M,0,M
+FOREST3,City Litter,BD,N_TREES,0,DIST_LITTER_MID,0,M,0,M
+FOREST1,City Litter,BD,N_TREES,0,DIST_LITTER_LOW,0,M,0,M
+FOREST2,City Litter,BD,N_TREES,0,DIST_LITTER_LOWER,0,M,0,M
 
 
 

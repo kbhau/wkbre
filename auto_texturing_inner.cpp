@@ -17,14 +17,8 @@
 #include "auto_texturing.h"
 
 
-
-void Texture_apply_inner_layers()
+void Apply_inner_layer(TextureLayerInner& layer)
 {
-	Texture_read_layer_files();
-	Create_change_buffer();
-
-	//printf("apply inners 1\n");
-
 	int i;
 	int x;
 	int z;
@@ -32,75 +26,64 @@ void Texture_apply_inner_layers()
 	bool pure = false;
 	float slope;
 	float height;
+	auto* tex = Get_texture_group(layer.inner_group_name);
 
-	for (int li = 0; li < inner_layers.len; ++li) {
+	for (int tz = 0; tz < mapwidth; ++tz) {
+		for (int tx = 0; tx < mapheight; ++tx) {
 
-		auto& layer = inner_layers[li];
-		auto* tex = Get_texture_group(layer.inner_group_name);
+			i = tz * mapwidth + tx;
+			auto* tile = &(maptiles[i]);
+			if (!Tile_in_group(tile, layer.parent_group_name)) {
+				continue;
+			}
 
-		for (int tz = 0; tz < mapwidth; ++tz) {
-			for (int tx = 0; tx < mapheight; ++tx) {
+			// Compute slope and height based on corner vertices.
+			slope = 0;
+			height = 0;
+			int j = tz * (mapwidth + 1) + tx;
+			uchar ul = himap_byte[j];
+			uchar ur = himap_byte[j + 1];
+			uchar dl = himap_byte[j + mapwidth + 1];
+			uchar dr = himap_byte[j + mapwidth + 1 + 1];
+			Get_edge_slope(ul, ur, slope);
+			Get_edge_slope(ur, dr, slope);
+			Get_edge_slope(dr, dl, slope);
+			Get_edge_slope(dl, ul, slope);
+			Get_diag_slope(ul, dr, slope);
+			Get_diag_slope(dl, ur, slope);
+			height = (ul + ur + dl + dr) * 0.25 * maphiscale;
+			slope = slope * 57.295779513;
 
-				i = tz * mapwidth + tx;
-				auto* tile = &(maptiles[i]);
-				if (!Tile_in_group(tile, layer.parent_group_name)) {
-					continue;
-				}
+			// If does not meet criteria, skip.
+			if (height < layer.height_min || height >= layer.height_max
+				|| slope < layer.slope_min || slope >= layer.slope_max) {
+				continue;
+			}
 
-				// Compute slope and height based on corner vertices.
-				slope = 0;
-				height = 0;
-				int j = tz * (mapwidth+1) + tx;
-				uchar ul = himap_byte[j];
-				uchar ur = himap_byte[j + 1];
-				uchar dl = himap_byte[j + mapwidth + 1];
-				uchar dr = himap_byte[j + mapwidth + 1 + 1];
-				Get_edge_slope(ul, ur, slope);
-				Get_edge_slope(ur, dr, slope);
-				Get_edge_slope(dr, dl, slope);
-				Get_edge_slope(dl, ul, slope);
-				Get_diag_slope(ul, dr, slope);
-				Get_diag_slope(dl, ur, slope);
-				height = (ul + ur + dl + dr) * 0.25 * maphiscale;
-				slope = slope * 57.295779513;
+			pure = true;
+			for (int ntz = -layer.border_radius; ntz <= layer.border_radius; ++ntz) {
+				for (int ntx = -layer.border_radius; ntx <= layer.border_radius; ++ntx) {
 
-				// If does not meet criteria, skip.
-				if (height < layer.height_min || height >= layer.height_max
-					|| slope < layer.slope_min || slope >= layer.slope_max)
-				{
-					continue;
-				}
-
-				pure = true;
-				for (int ntz = -layer.border_radius; ntz <= layer.border_radius; ++ntz) {
-					for (int ntx = -layer.border_radius; ntx <= layer.border_radius; ++ntx) {
-
-						// We iterate square but want circle. Square the circle.
-						if (layer.border_radius > 3)
+					// We iterate square but want circle. Square the circle.
+					if (layer.border_radius > 3)
 						if (ntz * ntz + ntx * ntx > layer.border_radius * layer.border_radius) {
 							continue;
 						}
-						auto tile2 = Get_tile(tile, ntx, ntz);
-						if (!tile2) {
-							continue;
-						}
-						if (!Tile_in_group(tile2, layer.parent_group_name)) {
-							pure = false;
-							goto exloop;
-						}
+					auto tile2 = Get_tile(tile, ntx, ntz);
+					if (!tile2) {
+						continue;
+					}
+					if (!Tile_in_group(tile2, layer.parent_group_name)) {
+						pure = false;
+						goto exloop;
 					}
 				}
-			exloop:
-				if (pure) {
-					changebuf[i].tile_id = rand() % tex->tex->len;
-				}
+			}
+		exloop:
+			if (pure) {
+				changebuf[i].tile_id = rand() % tex->tex->len;
 			}
 		}
-		Apply_change_buffer(layer.inner_group_name);
 	}
-
-	//printf("apply inners 2\n");
-
-	Free_change_buffer();
-	Texture_cleanup();
+	Apply_change_buffer(layer.inner_group_name);
 }

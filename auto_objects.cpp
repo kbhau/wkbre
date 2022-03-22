@@ -15,7 +15,50 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+#include "FastNoiseLite.h"
 #include "auto_texturing.h"
+
+
+auto Get_noise(char* noise_name)
+{
+	ObjectDistributionNoise* pars = nullptr;
+	for (int i = 0; i < noises.len; ++i) {
+		if (strcmp(noises[i].noise_name, noise_name) == 0) {
+			pars = &noises[i];
+			break;
+		}
+	}
+	if (!pars) {
+		printf("Could not find noise [%s]\n", noise_name);
+		auto np = std::unique_ptr<FastNoiseLite>();
+		np = nullptr;
+		return np;
+	}
+
+	auto n = std::make_unique<FastNoiseLite>(pars->seed);
+
+	n->SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+	n->SetFractalType(FastNoiseLite::FractalType_FBm);
+	n->SetFrequency(pars->frequency);
+	n->SetFractalOctaves(pars->octaves);
+	n->SetFractalLacunarity(pars->lacunarity);
+	n->SetFractalGain(pars->gain);
+	n->SetFractalWeightedStrength(pars->weighted_strength);
+
+	return n;
+}
+
+
+double Get_probability(
+	FastNoiseLite* noise,
+	float probability_min,
+	float probability_max,
+	int x,
+	int z
+) {
+	auto res = (noise->GetNoise((double)x, (double)z) + 1.f) / 2.f;
+	return res * (probability_max - probability_min) + probability_min;
+}
 
 
 
@@ -45,10 +88,11 @@ bool Tile_in_transition_group(MapTile* tile, const char* group_name)
 
 
 
-void Remove_distribution_objects()
+void Remove_distributable_objects()
 {
 	int d_i;
 	ObjectDistribution* d;
+	printf("Num distributions=[%d]", distributions.len);
 	for (int di = 0; di < distributions.len; ++di) {
 		d = &distributions[di];
 
@@ -66,19 +110,36 @@ void Remove_distribution_objects()
 			continue;
 		}
 		def = &objdef[def_i];
+		printf("Removing [%s]\n", d->object_name);
 		RemoveObjOfType2(levelobj, def);
 	}
 }
 
 
 
-void Distribute_objects()
+void Remove_distributable_objects_menu()
 {
 	// Reads the config file.
 	Texture_read_layer_files();
 
+	Remove_distributable_objects();
+
+	// Cleans the config memory.
+	Texture_cleanup();
+}
+
+
+
+void Distribute_objects(bool pre_clean)
+{
+	// Reads the config file.
+	Texture_read_layer_files();
+	Create_occupation_buffer();
+
 	// Pre-clean.
-	Remove_distribution_objects();
+	if (pre_clean) {
+		Remove_distributable_objects();
+	}
 
 	int tile_i;
 	int d_i;
@@ -86,12 +147,13 @@ void Distribute_objects()
 
 	// Find parent object.
 	GameObject* neutral_player = nullptr;
-	for (DynListEntry<GameObject>* e = levelobj->children.first; e; e = e->next)
-	if (e->value.objdef->type == CLASS_PLAYER
-		&& wcscmp(e->value.name, L"Neutral Player") == 0)
-	{
-		neutral_player = &e->value;
-		break;
+	for (DynListEntry<GameObject>* e = levelobj->children.first; e; e = e->next) {
+		if (e->value.objdef->type == CLASS_PLAYER
+			&& wcscmp(e->value.name, L"Neutral Player") == 0)
+		{
+			neutral_player = &e->value;
+			break;
+		}
 	}
 	if (neutral_player == nullptr) {
 		printf("Distribute Object: Could not find neutral player!\n");
@@ -101,6 +163,10 @@ void Distribute_objects()
 	// Loop through distributions.
 	for (int di = 0; di < distributions.len; ++di) {
 		d = &distributions[di];
+		auto n = Get_noise(d->noise_name);
+		if (!n) {
+			continue;
+		}
 
 		// Find object definition.
 		CObjectDefinition* def = nullptr;
@@ -132,14 +198,32 @@ void Distribute_objects()
 		for (int tz = mapedge; tz < mapwidth - 1 - mapedge; ++tz)
 		for (int tx = mapedge; tx < mapheight - 1 - mapedge; ++tx)
 		{
-			// Check tle group and set probability.
 			tile_i = tz * mapwidth + tx;
+
+			// Skip if tile occupied.
+			if (occbuf[tile_i]) {
+				continue;
+			}
+
+			// Check tile group and set probability.
 			auto* tile = &(maptiles[tile_i]);
 			float prob = 0.f;
 			if (Tile_in_group(tile, d->tile_group)) {
-				prob = d->probability;
+				prob = Get_probability(
+					n.get(),
+					d->probability_min,
+					d->probability_max,
+					tx,
+					tz
+				);
 			} else if (Tile_in_transition_group(tile, d->tile_group)) {
-				prob = d->probability / 2.f;
+				prob = Get_probability(
+					n.get(),
+					d->probability_min / 2.f,
+					d->probability_max / 2.f,
+					tx,
+					tz
+				);
 			} else {
 				continue;
 			}
@@ -178,10 +262,14 @@ void Distribute_objects()
 				o->position.z *= tileedge;
 				o->position.y = GetHeight(o->position.x, o->position.z);
 				o->orientation = Vector3(0, double(rand() % 360) / 57.295779513, 0);
+
+				// Mark tile as occupied.
+				occbuf[tile_i] = true;
 			}
 		}
 	} // distributions
 
 	// Cleans the config memory.
+	Free_occupation_buffer();
 	Texture_cleanup();
 }
