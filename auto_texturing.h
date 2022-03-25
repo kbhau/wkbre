@@ -48,6 +48,7 @@ struct TextureLayerIntermediate : TexturingAction
 	char* group_a;
 	char* group_b;
 	char* replacement;
+	int radius;
 };
 
 struct TextureLayerFeathering : TexturingAction
@@ -100,6 +101,7 @@ struct ObjectDistributionNoise
 	float gain;
 	float lacunarity;
 	float weighted_strength;
+	float power;
 	int octaves;
 	int seed;
 };

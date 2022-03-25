@@ -18,6 +18,7 @@
 #include "FastNoiseLite.h"
 #include "auto_texturing.h"
 
+float npower = 1.0;
 
 auto Get_noise(char* noise_name)
 {
@@ -44,6 +45,7 @@ auto Get_noise(char* noise_name)
 	n->SetFractalLacunarity(pars->lacunarity);
 	n->SetFractalGain(pars->gain);
 	n->SetFractalWeightedStrength(pars->weighted_strength);
+	npower = pars->power;
 
 	return n;
 }
@@ -53,10 +55,12 @@ double Get_probability(
 	FastNoiseLite* noise,
 	float probability_min,
 	float probability_max,
+	float power,
 	int x,
 	int z
 ) {
 	auto res = (noise->GetNoise((double)x, (double)z) + 1.f) / 2.f;
+	res = pow(min(1.0, max(0.0, res)), power);
 	return res * (probability_max - probability_min) + probability_min;
 }
 
@@ -92,7 +96,7 @@ void Remove_distributable_objects()
 {
 	int d_i;
 	ObjectDistribution* d;
-	printf("Num distributions=[%d]", distributions.len);
+	//printf("Num distributions=[%d]", distributions.len);
 	for (int di = 0; di < distributions.len; ++di) {
 		d = &distributions[di];
 
@@ -110,7 +114,7 @@ void Remove_distributable_objects()
 			continue;
 		}
 		def = &objdef[def_i];
-		printf("Removing [%s]\n", d->object_name);
+		//printf("Removing [%s]\n", d->object_name);
 		RemoveObjOfType2(levelobj, def);
 	}
 }
@@ -213,6 +217,7 @@ void Distribute_objects(bool pre_clean)
 					n.get(),
 					d->probability_min,
 					d->probability_max,
+					npower,
 					tx,
 					tz
 				);
@@ -221,6 +226,7 @@ void Distribute_objects(bool pre_clean)
 					n.get(),
 					d->probability_min / 2.f,
 					d->probability_max / 2.f,
+					npower,
 					tx,
 					tz
 				);
@@ -244,11 +250,14 @@ void Distribute_objects(bool pre_clean)
 			Get_diag_slope(dl, ur, slope);
 			height = (ul + ur + dl + dr) * 0.25 * maphiscale;
 			slope = slope * 57.295779513;
-			if (height < d->height_min && height >= d->height_max
-				&& slope < d->slope_min && slope >= d->slope_max)
+			if (height < d->height_min || height >= d->height_max
+				|| slope < d->slope_min || slope >= d->slope_max)
 			{
 				continue;
 			}
+			/*if (double(rand()) / RAND_MAX < 0.01) {
+				printf("Slope=[%f] Prob=[%f]\n", slope, prob);
+			}*/
 
 			// Create the object.
 			if (double(rand()) / RAND_MAX < prob) {
@@ -264,6 +273,9 @@ void Distribute_objects(bool pre_clean)
 				o->orientation = Vector3(0, double(rand() % 360) / 57.295779513, 0);
 
 				// Mark tile as occupied.
+				if (tile_i >= bufsize) {
+					printf("ERROR: tile_i=[%d] bufsize=[%d]\n", tile_i, bufsize);
+				}
 				occbuf[tile_i] = true;
 			}
 		}

@@ -30,23 +30,34 @@ void Apply_replacement(TextureLayerIntermediate& layer)
 
 			i = tz * mapwidth + tx;
 			auto* tile = &(maptiles[i]);
-			if (!Tile_in_group(tile, layer.group_a)) {
+			char* wanted;
+			if (Tile_in_group(tile, layer.group_a)) {
+				wanted = layer.group_b;
+			} else if (Tile_in_group(tile, layer.group_b)) {
+				wanted = layer.group_a;
+			} else {
 				continue;
 			}
 
 			tileok = true;
-			for (int ntz = -1; ntz < 2; ++ntz) {
-				for (int ntx = -1; ntx < 2; ++ntx) {
+			for (int ntz = -layer.radius; ntz <= layer.radius; ++ntz) {
+				for (int ntx = -layer.radius; ntx <= layer.radius; ++ntx) {
 					if (ntx != 0 && ntz != 0) {
+						continue;
+					}
+					if (ntx * ntx + ntz * ntz > layer.radius * layer.radius) {
 						continue;
 					}
 					auto tile2 = Get_tile(tile, ntx, ntz);
 					if (!tile2) {
 						continue;
 					}
-					if (Tile_in_group(tile2, layer.group_b)) {
-						changebuf[tile2->z * mapwidth + tile2->x].tile_id =
-							rand() % tex->tex->len;
+					if (Tile_in_group(tile2, wanted)) {
+						auto& tc = changebuf[tile2->z * mapwidth + tile2->x];
+						tc.tile_id = rand() % tex->tex->len;
+						tc.flipx = rand() % 2;
+						tc.flipz = false;
+						tc.rotation = rand() % 4;
 						tileok = false;
 						//goto exloop;
 					}
@@ -55,7 +66,7 @@ void Apply_replacement(TextureLayerIntermediate& layer)
 			//exloop:
 			if (!tileok) {
 				ok = false;
-				changebuf[i].tile_id = rand() % tex->tex->len;
+				//changebuf[i].tile_id = rand() % tex->tex->len;
 			}
 		}
 	}

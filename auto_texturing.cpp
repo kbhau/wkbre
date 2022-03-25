@@ -228,12 +228,14 @@ void Texture_read_layer_files()
 				strtok(line, ","); // Get rid of leading char.
 				char* grp_a = (char*)malloc(sizeof(char) * namelen); strcpy(grp_a, strtok(nullptr, ","));
 				char* grp_b = (char*)malloc(sizeof(char) * namelen); strcpy(grp_b, strtok(nullptr, ","));
-				char* repl = (char*)malloc(sizeof(char) * namelen); strcpy(repl, strtok(nullptr, "\n"));
+				char* repl = (char*)malloc(sizeof(char) * namelen); strcpy(repl, strtok(nullptr, ","));
+				int radius = getval(strtok(nullptr, "\n"));
 				actions.add(new TextureLayerIntermediate{
 					{'R'},
 					grp_a,
 					grp_b,
-					repl
+					repl,
+					radius
 				});
 			}
 			continue;
@@ -263,13 +265,15 @@ void Texture_read_layer_files()
 			int octaves = getval(strtok(nullptr, ","));
 			float lacunarity = getvalf(strtok(nullptr, ","));
 			float gain = getvalf(strtok(nullptr, ","));
-			float weighted_strength = getvalf(strtok(nullptr, "\n"));
+			float weighted_strength = getvalf(strtok(nullptr, ","));
+			float power = getvalf(strtok(nullptr, "\n"));
 			noises.add(ObjectDistributionNoise{
 				noise_name,
 				frequency,
 				gain,
 				lacunarity,
 				weighted_strength,
+				power,
 				octaves,
 				seed
 			});
@@ -368,7 +372,7 @@ void Texture_read_layer_files()
 	}
 	for (int i = 0; i < noises.len; ++i) {
 		auto& it = noises[i];
-		printf("N:%s,%d,%f,%d,%f,%f,%f\n", it.noise_name, it.seed, it.frequency, it.octaves, it.lacunarity, it.gain, it.weighted_strength);
+		printf("N:%s,%d,%f,%d,%f,%f,%f,%f\n", it.noise_name, it.seed, it.frequency, it.octaves, it.lacunarity, it.gain, it.weighted_strength, it.power);
 	}
 	for (int i = 0; i < distributions.len; ++i) {
 		auto& it = distributions[i];
@@ -563,6 +567,7 @@ void Apply_change_buffer(char* tex_grp, char* alt)
 
 void Create_occupation_buffer()
 {
+	bufsize = mapwidth * mapheight;
 	occbuf = (bool*)malloc(sizeof(bool) * bufsize);
 	for (int i = 0; i < bufsize; ++i) {
 		occbuf[i] = false;
@@ -572,6 +577,7 @@ void Create_occupation_buffer()
 void Free_occupation_buffer()
 {
 	free(occbuf);
+	occbuf = nullptr;
 }
 
 
