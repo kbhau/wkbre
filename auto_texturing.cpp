@@ -587,7 +587,7 @@ void Free_occupation_buffer()
 
 /*
 
-- action script
+- fix autotile edges
 
 - fix seams - better iteration control
 

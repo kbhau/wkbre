@@ -136,6 +136,17 @@ void Remove_distributable_objects_menu()
 
 void Distribute_objects(bool pre_clean)
 {
+	// Object placement offset - the map is offset when w =/= h.
+	float xoffset = 0.f;
+	float zoffset = 0.f;
+	if (mapwidth < mapheight) {
+		xoffset = (mapheight - mapwidth);
+		//printf("xoffset=[%f]\n", xoffset);
+	} else if (mapwidth > mapheight) {
+		zoffset = (mapwidth - mapheight);
+		//printf("zoffset=[%f]\n", zoffset);
+	}
+
 	// Reads the config file.
 	Texture_read_layer_files();
 	Create_occupation_buffer();
@@ -199,8 +210,8 @@ void Distribute_objects(bool pre_clean)
 		
 
 		// Distribute this object.
-		for (int tz = mapedge; tz < mapwidth - 1 - mapedge; ++tz)
-		for (int tx = mapedge; tx < mapheight - 1 - mapedge; ++tx)
+		for (int tz = mapedge; tz < mapheight - mapedge; ++tz)
+		for (int tx = mapedge; tx < mapwidth - mapedge; ++tx)
 		{
 			tile_i = tz * mapwidth + tx;
 
@@ -237,7 +248,7 @@ void Distribute_objects(bool pre_clean)
 			// Check tile properties.
 			float slope = 0;
 			float height = 0;
-			int j = tz * (mapwidth + 1) + tx;
+			int j = tz * (mapwidth) + tx;
 			uchar ul = himap_byte[j];
 			uchar ur = himap_byte[j + 1];
 			uchar dl = himap_byte[j + mapwidth + 1];
@@ -261,12 +272,14 @@ void Distribute_objects(bool pre_clean)
 
 			// Create the object.
 			if (double(rand()) / RAND_MAX < prob) {
+				
+				float innerrange = 1.0 - 2.0 * d->border_distance;
 				float tileedge = 5.0;
 				GameObject* o = CreateObject(def, neutral_player);
-				o->position.x = (tx - mapedge) + d->border_distance
-					+ (double(rand()) / RAND_MAX) * (1.0 - 2.0 * d->border_distance);
-				o->position.z = (mapwidth - tz - mapedge) - d->border_distance
-					- (double(rand()) / RAND_MAX) * (1.0 - 2.0 * d->border_distance);
+				o->position.x = (tx - mapedge) + xoffset + d->border_distance
+					+ (double(rand()) / RAND_MAX) * innerrange;
+				o->position.z = (mapwidth - tz - mapedge) - zoffset - d->border_distance
+					- (double(rand()) / RAND_MAX) * innerrange;
 				o->position.x *= tileedge;
 				o->position.z *= tileedge;
 				o->position.y = GetHeight(o->position.x, o->position.z);

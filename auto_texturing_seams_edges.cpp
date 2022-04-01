@@ -191,10 +191,26 @@ void Tile_edge_shape::Get_edges(
 	const MapTile* tile,
 	TextureLayerTransition* transition
 ) {
-	n = Get_edge(Get_N_tile(tile), transition, 2);
-	e = Get_edge(Get_E_tile(tile), transition, 3);
-	s = Get_edge(Get_S_tile(tile), transition, 0);
-	w = Get_edge(Get_W_tile(tile), transition, 1);	
+	if (tile->z > 0) {
+		n = Get_edge(Get_N_tile(tile), transition, 2);
+	} else {
+		n = 0;
+	}
+	if (tile->x < mapwidth - 1) {
+		e = Get_edge(Get_E_tile(tile), transition, 3);
+	} else {
+		e = 0;
+	}
+	if (tile->z < mapheight - 1) {
+		s = Get_edge(Get_S_tile(tile), transition, 0);
+	} else {
+		s = 0;
+	}
+	if (tile->x > 0) {
+		w = Get_edge(Get_W_tile(tile), transition, 1);	
+	} else {
+		w = 0;
+	}
 }
 
 
@@ -302,8 +318,8 @@ bool Match_tiles_by_edges(TextureLayerTransition* transition)
 		auto offset = iter % 4;
 		auto offset2 = (iter + 2) % 4;
 
-		for (int tz = 1; tz < mapwidth - 1; ++tz)
-		for (int tx = ((tz % 2) ? offset : offset2); tx < mapheight - 1; tx += 4)
+		for (int tz = 0; tz < mapheight; ++tz)
+		for (int tx = ((tz % 2) ? offset : offset2); tx < mapwidth; tx += 4)
 		{
 			auto i = tz * mapwidth + tx;
 			const auto* tile = &(maptiles[i]);
