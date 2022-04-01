@@ -25,8 +25,8 @@ void Apply_replacement(TextureLayerIntermediate& layer)
 
 	auto* tex = Get_texture_group(layer.replacement);
 
-	for (int tz = 0; tz < mapwidth; ++tz) {
-		for (int tx = 0; tx < mapheight; ++tx) {
+	for (int tz = 0; tz < mapheight; ++tz) {
+		for (int tx = 0; tx < mapwidth; ++tx) {
 
 			i = tz * mapwidth + tx;
 			auto* tile = &(maptiles[i]);

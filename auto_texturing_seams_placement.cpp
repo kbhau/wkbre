@@ -56,56 +56,57 @@ bool Fill_islands(TextureLayerTransition* transition)
 
 	// Try to expand tiles that would disappear.
 	for (int ii = 0; ii < fix_seams_iterations; ++ii)
-		for (int tz = 1; tz < mapwidth - 1; ++tz)
-			for (int tx = 1; tx < mapheight - 1; ++tx) {
-				i = tz * mapwidth + tx;
-				auto* tile = &(maptiles[i]);
+	for (int tz = 1; tz < mapheight - 1; ++tz)
+	for (int tx = 1; tx < mapwidth - 1; ++tx)
+	{
+		i = tz * mapwidth + tx;
+		auto* tile = &(maptiles[i]);
 
-				// Process only the matching group.
-				if (!Tile_in_group(tile, group_this)) {
-					continue;
-				}
+		// Process only the matching group.
+		if (!Tile_in_group(tile, group_this)) {
+			continue;
+		}
 
-				// Count bordering sides.
-				auto countmatch = 0;
-				for (int ntz = -1; ntz <= 1; ++ntz)
-					for (int ntx = -1; ntx <= 1; ++ntx) {
-						// Skip diagonals.
-						if (ntx != 0 && ntz != 0) {
-							continue;
-						}
+		// Count bordering sides.
+		auto countmatch = 0;
+		for (int ntz = -1; ntz <= 1; ++ntz)
+		for (int ntx = -1; ntx <= 1; ++ntx) {
+			// Skip diagonals.
+			if (ntx != 0 && ntz != 0) {
+				continue;
+			}
 
-						auto tile2 = Get_tile(tile, ntx, ntz);
+			auto tile2 = Get_tile(tile, ntx, ntz);
 
-						countmatch += Tile_in_group(tile2, group_other);
-					}
+			countmatch += Tile_in_group(tile2, group_other);
+		}
 
-				// If above threshold, change neighbour tiles.
-				if (countmatch >= fill_islands_min_neighbours) {
-					for (int ntz = -1; ntz <= 1; ++ntz)
-						for (int ntx = -1; ntx <= 1; ++ntx) {
-							auto tile2 = Get_tile(tile, ntx, ntz);
+		// If above threshold, change neighbour tiles.
+		if (countmatch >= fill_islands_min_neighbours) {
+			for (int ntz = -1; ntz <= 1; ++ntz)
+			for (int ntx = -1; ntx <= 1; ++ntx) {
+				auto tile2 = Get_tile(tile, ntx, ntz);
 
-							if (Tile_in_group(tile2, group_other)) {
-								Set_current_texture_by_name(group_this);
-								ChangeTileTexture(tile2, Get_curtex());
-								tile2->rot = rand() % 4;
-								tile2->xflip = rand() % 2;
-								tile2->zflip = rand() % 2;
-							}
-						}
-
-					ok = false;
+				if (Tile_in_group(tile2, group_other)) {
+					Set_current_texture_by_name(group_this);
+					ChangeTileTexture(tile2, Get_curtex());
+					tile2->rot = rand() % 4;
+					tile2->xflip = rand() % 2;
+					tile2->zflip = rand() % 2;
 				}
 			}
+
+			ok = false;
+		}
+	}
 
 
 	while (!ok) {
 		ok = true;
 
 		// Fill islands that can't be resolved nicely.
-		for (int tz = 1; tz < mapwidth - 1; ++tz)
-			for (int tx = 1; tx < mapheight - 1; ++tx) {
+		for (int tz = 1; tz < mapheight - 1; ++tz)
+			for (int tx = 1; tx < mapwidth - 1; ++tx) {
 				i = tz * mapwidth + tx;
 				auto* tile = &(maptiles[i]);
 
@@ -117,31 +118,31 @@ bool Fill_islands(TextureLayerTransition* transition)
 				// Count bordering sides.
 				auto countmatch = 0;
 				for (int ntz = -1; ntz <= 1; ++ntz)
-					for (int ntx = -1; ntx <= 1; ++ntx) {
-						// Skip diagonals.
-						if (ntx != 0 && ntz != 0) {
-							continue;
-						}
-
-						auto tile2 = Get_tile(tile, ntx, ntz);
-
-						countmatch += Tile_in_group(tile2, group_other);
+				for (int ntx = -1; ntx <= 1; ++ntx) {
+					// Skip diagonals.
+					if (ntx != 0 && ntz != 0) {
+						continue;
 					}
+
+					auto tile2 = Get_tile(tile, ntx, ntz);
+
+					countmatch += Tile_in_group(tile2, group_other);
+				}
 
 				// If above threshold, change neighbour tiles.
 				if (countmatch >= fill_islands_min_neighbours) {
 					for (int ntz = -1; ntz <= 1; ++ntz)
-						for (int ntx = -1; ntx <= 1; ++ntx) {
-							auto tile2 = Get_tile(tile, ntx, ntz);
+					for (int ntx = -1; ntx <= 1; ++ntx) {
+						auto tile2 = Get_tile(tile, ntx, ntz);
 
-							if (Tile_in_group(tile2, group_other)) {
-								Set_current_texture_by_name(group_this);
-								ChangeTileTexture(tile2, Get_curtex());
-								tile2->rot = rand() % 4;
-								tile2->xflip = rand() % 2;
-								tile2->zflip = rand() % 2;
-							}
+						if (Tile_in_group(tile2, group_other)) {
+							Set_current_texture_by_name(group_this);
+							ChangeTileTexture(tile2, Get_curtex());
+							tile2->rot = rand() % 4;
+							tile2->xflip = rand() % 2;
+							tile2->zflip = rand() % 2;
 						}
+					}
 
 					ok = false;
 				}
@@ -172,8 +173,8 @@ bool Place_transitions(TextureLayerTransition* transition)
 	while (!ok) {
 		ok = true;
 
-		for (int tz = 1; tz < mapwidth - 1; ++tz) {
-			for (int tx = 1; tx < mapheight - 1; ++tx) {
+		for (int tz = 0; tz < mapheight; ++tz) {
+			for (int tx = 0; tx < mapwidth; ++tx) {
 
 				i = tz * mapwidth + tx;
 				auto* tile = &(maptiles[i]);
@@ -231,8 +232,8 @@ bool Prune_transitions(TextureLayerTransition* transition)
 		group_other = transition->from_group;
 	}
 
-	for (int tz = 1; tz < mapwidth - 1; ++tz) {
-		for (int tx = 1; tx < mapheight - 1; ++tx) {
+	for (int tz = 1; tz < mapheight - 1; ++tz) {
+		for (int tx = 1; tx < mapwidth - 1; ++tx) {
 
 			i = tz * mapwidth + tx;
 			auto* tile = &(maptiles[i]);
@@ -250,8 +251,8 @@ bool Prune_transitions(TextureLayerTransition* transition)
 	}
 	Apply_change_buffer(group_other);
 
-	for (int tz = 1; tz < mapwidth - 1; ++tz) {
-		for (int tx = 1; tx < mapheight - 1; ++tx) {
+	for (int tz = 1; tz < mapheight - 1; ++tz) {
+		for (int tx = 1; tx < mapwidth - 1; ++tx) {
 			i = tz * mapwidth + tx;
 			auto* tile = &(maptiles[i]);
 			if (Tile_in_group(tile, transition->transition_group)) {
@@ -268,8 +269,8 @@ bool Prune_transitions(TextureLayerTransition* transition)
 	}
 	Apply_change_buffer(group_this);
 
-	for (int tz = 1; tz < mapwidth - 1; ++tz) {
-		for (int tx = 1; tx < mapheight - 1; ++tx) {
+	for (int tz = 1; tz < mapheight - 1; ++tz) {
+		for (int tx = 1; tx < mapwidth - 1; ++tx) {
 			i = tz * mapwidth + tx;
 			auto* tile = &(maptiles[i]);
 			if (Tile_in_group(tile, transition->transition_group)) {

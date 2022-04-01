@@ -21,14 +21,30 @@
 uchar Get_shape(MapTile* tile, char* group)
 {
 	uchar s = 0;
-	s |= Tile_in_group(Get_N_tile(tile), group) << 7;
-	s |= Tile_in_group(Get_NE_tile(tile), group) << 6;
-	s |= Tile_in_group(Get_E_tile(tile), group) << 5;
-	s |= Tile_in_group(Get_SE_tile(tile), group) << 4;
-	s |= Tile_in_group(Get_S_tile(tile), group) << 3;
-	s |= Tile_in_group(Get_SW_tile(tile), group) << 2;
-	s |= Tile_in_group(Get_W_tile(tile), group) << 1;
-	s |= Tile_in_group(Get_NW_tile(tile), group) << 0;
+	if (tile->z > 0) {
+		s |= Tile_in_group(Get_N_tile(tile), group) << 7;
+		if (tile->x > 0) {
+			s |= Tile_in_group(Get_NW_tile(tile), group) << 0;
+		}
+		if (tile->x < mapwidth - 1) {
+			s |= Tile_in_group(Get_NE_tile(tile), group) << 6;
+		}
+	}
+	if (tile->z < mapheight - 1) {
+		s |= Tile_in_group(Get_S_tile(tile), group) << 3;
+		if (tile->x > 0) {
+			s |= Tile_in_group(Get_SW_tile(tile), group) << 2;
+		}
+		if (tile->x < mapwidth - 1) {
+			s |= Tile_in_group(Get_SE_tile(tile), group) << 4;
+		}
+	}
+	if (tile->x > 0) {
+		s |= Tile_in_group(Get_W_tile(tile), group) << 1;
+	}
+	if (tile->x < mapwidth - 1) {
+		s |= Tile_in_group(Get_E_tile(tile), group) << 5;
+	}
 	return s;
 }
 

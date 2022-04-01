@@ -26,8 +26,8 @@ void Feather_seams(TextureLayerFeathering& layer)
 	auto* tex_to = Get_texture_group(feather->to);
 
 	for (int i = 0; i < feather->iterations; ++i) {
-		for (int tz = 0; tz < mapwidth; ++tz)
-		for (int tx = 0; tx < mapheight; ++tx) {
+		for (int tz = 0; tz < mapheight; ++tz)
+		for (int tx = 0; tx < mapwidth; ++tx) {
 			ti = tz * mapwidth + tx;
 			auto* tile = &maptiles[ti];
 

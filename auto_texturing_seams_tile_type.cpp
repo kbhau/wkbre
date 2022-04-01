@@ -364,8 +364,8 @@ bool Match_tiles_by_tile_type(TextureLayerTransition* transition)
 	while (!ok) {
 		ok = true;
 
-		for (int tz = 1; tz < mapwidth - 1; ++tz) {
-			for (int tx = 1; tx < mapheight - 1; ++tx) {
+		for (int tz = 1; tz < mapheight - 1; ++tz) {
+			for (int tx = 1; tx < mapwidth - 1; ++tx) {
 
 				i = tz * mapwidth + tx;
 				auto* tile = &(maptiles[i]);
